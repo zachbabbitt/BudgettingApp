@@ -8,7 +8,7 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import java.util.Date
 
-@Database(entities = [Expense::class, Income::class], version = 2, exportSchema = false)
+@Database(entities = [Expense::class, Income::class], version = 3, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun expenseDao(): ExpenseDao
@@ -41,5 +41,15 @@ class Converters {
     @TypeConverter
     fun dateToTimestamp(date: Date?): Long? {
         return date?.time
+    }
+
+    @TypeConverter
+    fun fromRecurringType(value: RecurringType): String {
+        return value.name
+    }
+
+    @TypeConverter
+    fun toRecurringType(value: String): RecurringType {
+        return RecurringType.valueOf(value)
     }
 }

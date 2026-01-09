@@ -13,5 +13,5 @@ data class Expense(
     val amount: Double,
     val category: String,
     val date: Date = Date(),
-    val isRecurring: Boolean = false
+    val recurringType: RecurringType = RecurringType.NONE
 )

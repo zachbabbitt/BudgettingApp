@@ -29,6 +29,14 @@ class ExpensesActivity : AppCompatActivity() {
         "Other"
     )
 
+    private val recurringOptions by lazy {
+        listOf(
+            getString(R.string.recurring_none),
+            getString(R.string.recurring_weekly),
+            getString(R.string.recurring_monthly)
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityExpensesBinding.inflate(layoutInflater)
@@ -81,6 +89,10 @@ class ExpensesActivity : AppCompatActivity() {
         val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
         dialogBinding.spinnerCategory.setAdapter(categoryAdapter)
 
+        val recurringAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, recurringOptions)
+        dialogBinding.spinnerRecurring.setAdapter(recurringAdapter)
+        dialogBinding.spinnerRecurring.setText(recurringOptions[0], false)
+
         AlertDialog.Builder(this)
             .setTitle(R.string.add_expense)
             .setView(dialogBinding.root)
@@ -100,8 +112,14 @@ class ExpensesActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
-                val isRecurring = dialogBinding.checkBoxRecurring.isChecked
-                addExpense(Expense(title = title, amount = amount, category = category, isRecurring = isRecurring))
+                val recurringSelection = dialogBinding.spinnerRecurring.text.toString()
+                val recurringType = when (recurringSelection) {
+                    getString(R.string.recurring_weekly) -> RecurringType.WEEKLY
+                    getString(R.string.recurring_monthly) -> RecurringType.MONTHLY
+                    else -> RecurringType.NONE
+                }
+
+                addExpense(Expense(title = title, amount = amount, category = category, recurringType = recurringType))
             }
             .setNegativeButton(R.string.cancel, null)
             .show()

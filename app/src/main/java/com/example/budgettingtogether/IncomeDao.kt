@@ -11,8 +11,11 @@ interface IncomeDao {
     @Query("SELECT * FROM income ORDER BY date DESC")
     fun getAllIncome(): Flow<List<Income>>
 
-    @Query("SELECT * FROM income WHERE isRecurring = 1 ORDER BY date DESC")
+    @Query("SELECT * FROM income WHERE recurringType != 'NONE' ORDER BY date DESC")
     fun getRecurringIncome(): Flow<List<Income>>
+
+    @Query("SELECT * FROM income WHERE recurringType = :type ORDER BY date DESC")
+    fun getIncomeByRecurringType(type: String): Flow<List<Income>>
 
     @Query("SELECT * FROM income WHERE source = :source ORDER BY date DESC")
     fun getIncomeBySource(source: String): Flow<List<Income>>

@@ -50,7 +50,20 @@ class ExpenseAdapter(
                 textViewAmount.text = currencyFormat.format(expense.amount)
                 textViewCategory.text = expense.category
                 textViewDate.text = dateFormat.format(expense.date)
-                textViewRecurring.visibility = if (expense.isRecurring) View.VISIBLE else View.GONE
+
+                when (expense.recurringType) {
+                    RecurringType.NONE -> {
+                        textViewRecurring.visibility = View.GONE
+                    }
+                    RecurringType.WEEKLY -> {
+                        textViewRecurring.visibility = View.VISIBLE
+                        textViewRecurring.text = root.context.getString(R.string.recurring_weekly)
+                    }
+                    RecurringType.MONTHLY -> {
+                        textViewRecurring.visibility = View.VISIBLE
+                        textViewRecurring.text = root.context.getString(R.string.recurring_monthly)
+                    }
+                }
 
                 buttonDelete.setOnClickListener {
                     onDeleteClick(expense)
