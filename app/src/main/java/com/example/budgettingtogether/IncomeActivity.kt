@@ -6,15 +6,18 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.databinding.ActivityIncomeBinding
 import com.example.budgettingtogether.databinding.DialogAddIncomeBinding
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 class IncomeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityIncomeBinding
     private lateinit var incomeAdapter: IncomeAdapter
-    private val incomeList = mutableListOf<Income>()
+    private lateinit var incomeDao: IncomeDao
 
     private val sources = listOf(
         "Salary",
@@ -31,10 +34,13 @@ class IncomeActivity : AppCompatActivity() {
         binding = ActivityIncomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        val database = AppDatabase.getDatabase(this)
+        incomeDao = database.incomeDao()
+
         setupToolbar()
         setupRecyclerView()
         setupFab()
-        updateTotalDisplay()
+        observeIncome()
     }
 
     private fun setupToolbar() {
@@ -45,7 +51,7 @@ class IncomeActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        incomeAdapter = IncomeAdapter(incomeList) { income ->
+        incomeAdapter = IncomeAdapter { income ->
             deleteIncome(income)
         }
         binding.recyclerViewIncome.apply {
@@ -57,6 +63,15 @@ class IncomeActivity : AppCompatActivity() {
     private fun setupFab() {
         binding.fabAddIncome.setOnClickListener {
             showAddIncomeDialog()
+        }
+    }
+
+    private fun observeIncome() {
+        lifecycleScope.launch {
+            incomeDao.getAllIncome().collectLatest { incomeList ->
+                incomeAdapter.updateList(incomeList)
+                updateTotalDisplay(incomeList)
+            }
         }
     }
 
@@ -85,29 +100,26 @@ class IncomeActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
-                addIncome(Income(title = title, amount = amount, source = source))
+                val isRecurring = dialogBinding.checkBoxRecurring.isChecked
+                addIncome(Income(title = title, amount = amount, source = source, isRecurring = isRecurring))
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
     private fun addIncome(income: Income) {
-        incomeList.add(0, income)
-        incomeAdapter.notifyItemInserted(0)
-        binding.recyclerViewIncome.scrollToPosition(0)
-        updateTotalDisplay()
-    }
-
-    private fun deleteIncome(income: Income) {
-        val position = incomeList.indexOf(income)
-        if (position != -1) {
-            incomeList.removeAt(position)
-            incomeAdapter.notifyItemRemoved(position)
-            updateTotalDisplay()
+        lifecycleScope.launch {
+            incomeDao.insert(income)
         }
     }
 
-    private fun updateTotalDisplay() {
+    private fun deleteIncome(income: Income) {
+        lifecycleScope.launch {
+            incomeDao.delete(income)
+        }
+    }
+
+    private fun updateTotalDisplay(incomeList: List<Income>) {
         val total = incomeList.sumOf { it.amount }
         binding.textViewTotal.text = getString(R.string.total_format, total)
     }

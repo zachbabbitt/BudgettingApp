@@ -6,15 +6,18 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.databinding.ActivityExpensesBinding
 import com.example.budgettingtogether.databinding.DialogAddExpenseBinding
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 class ExpensesActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityExpensesBinding
     private lateinit var expenseAdapter: ExpenseAdapter
-    private val expenses = mutableListOf<Expense>()
+    private lateinit var expenseDao: ExpenseDao
 
     private val categories = listOf(
         "Food & Dining",
@@ -31,10 +34,13 @@ class ExpensesActivity : AppCompatActivity() {
         binding = ActivityExpensesBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        val database = AppDatabase.getDatabase(this)
+        expenseDao = database.expenseDao()
+
         setupToolbar()
         setupRecyclerView()
         setupFab()
-        updateTotalDisplay()
+        observeExpenses()
     }
 
     private fun setupToolbar() {
@@ -45,7 +51,7 @@ class ExpensesActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        expenseAdapter = ExpenseAdapter(expenses) { expense ->
+        expenseAdapter = ExpenseAdapter { expense ->
             deleteExpense(expense)
         }
         binding.recyclerViewExpenses.apply {
@@ -57,6 +63,15 @@ class ExpensesActivity : AppCompatActivity() {
     private fun setupFab() {
         binding.fabAddExpense.setOnClickListener {
             showAddExpenseDialog()
+        }
+    }
+
+    private fun observeExpenses() {
+        lifecycleScope.launch {
+            expenseDao.getAllExpenses().collectLatest { expenses ->
+                expenseAdapter.updateList(expenses)
+                updateTotalDisplay(expenses)
+            }
         }
     }
 
@@ -85,29 +100,26 @@ class ExpensesActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
-                addExpense(Expense(title = title, amount = amount, category = category))
+                val isRecurring = dialogBinding.checkBoxRecurring.isChecked
+                addExpense(Expense(title = title, amount = amount, category = category, isRecurring = isRecurring))
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
     private fun addExpense(expense: Expense) {
-        expenses.add(0, expense)
-        expenseAdapter.notifyItemInserted(0)
-        binding.recyclerViewExpenses.scrollToPosition(0)
-        updateTotalDisplay()
-    }
-
-    private fun deleteExpense(expense: Expense) {
-        val position = expenses.indexOf(expense)
-        if (position != -1) {
-            expenses.removeAt(position)
-            expenseAdapter.notifyItemRemoved(position)
-            updateTotalDisplay()
+        lifecycleScope.launch {
+            expenseDao.insert(expense)
         }
     }
 
-    private fun updateTotalDisplay() {
+    private fun deleteExpense(expense: Expense) {
+        lifecycleScope.launch {
+            expenseDao.delete(expense)
+        }
+    }
+
+    private fun updateTotalDisplay(expenses: List<Expense>) {
         val total = expenses.sumOf { it.amount }
         binding.textViewTotal.text = getString(R.string.total_format, total)
     }

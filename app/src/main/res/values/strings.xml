@@ -23,4 +23,6 @@
     <string name="delete_income">Delete income</string>
     <string name="fill_all_fields">Please fill in all fields</string>
     <string name="invalid_amount">Please enter a valid amount</string>
+    <string name="recurring_monthly">Recurring (monthly)</string>
+    <string name="recurring_label">Recurring</string>
 </resources>
