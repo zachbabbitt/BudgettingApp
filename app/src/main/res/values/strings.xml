@@ -40,6 +40,10 @@
     <string name="no_recurring_expenses">One Time Bills</string>
     <string name="filter_by_category">Category Filter</string>
     <string name="no_expenses_in_category">No Expenses found in this category</string>
+    <string name="analysis">Analysis</string>
+    <string name="analysis_title">Spending Analysis</string>
+    <string name="monthly_total">Monthly total: %1$s</string>
+    <string name="total_label">Total: %1$s</string>
 
 
 

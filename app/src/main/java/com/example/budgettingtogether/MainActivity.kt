@@ -47,6 +47,10 @@ class MainActivity : AppCompatActivity() {
         binding.buttonSetLimits.setOnClickListener {
             startActivity(Intent(this, BudgetLimitsActivity::class.java))
         }
+
+        binding.buttonAnalysis.setOnClickListener {
+            startActivity(Intent(this, AnalysisActivity::class.java))
+        }
     }
 
     private fun observeData() {
