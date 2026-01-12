@@ -8,16 +8,41 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.budgettingtogether.databinding.ItemBudgetLimitBinding
 
 class BudgetLimitAdapter(
-    private val categories: List<String>,
+    private var categories: List<String>,
     private val onLimitChanged: (String, Double?) -> Unit
 ) : RecyclerView.Adapter<BudgetLimitAdapter.LimitViewHolder>() {
 
+    init {
+        setHasStableIds(true)
+    }
+
     private val limits = mutableMapOf<String, Double>()
+    private var isInitialLoad = true
+
+    override fun getItemId(position: Int): Long {
+        return categories[position].hashCode().toLong()
+    }
 
     fun setLimits(budgetLimits: List<BudgetLimit>) {
+        val newLimits = budgetLimits.associate { it.category to it.limitAmount }
+
+        // Only notify if this is initial load or if limits actually changed
+        val hasChanges = isInitialLoad || limits != newLimits
+
         limits.clear()
-        budgetLimits.forEach { limits[it.category] = it.limitAmount }
-        notifyDataSetChanged()
+        limits.putAll(newLimits)
+
+        if (hasChanges && isInitialLoad) {
+            isInitialLoad = false
+            notifyDataSetChanged()
+        }
+    }
+
+    fun updateCategories(newCategories: List<String>) {
+        if (categories != newCategories) {
+            categories = newCategories
+            notifyDataSetChanged()
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LimitViewHolder {
