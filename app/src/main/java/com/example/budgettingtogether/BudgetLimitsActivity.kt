@@ -5,24 +5,16 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.databinding.ActivityBudgetLimitsBinding
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class BudgetLimitsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityBudgetLimitsBinding
     private lateinit var budgetLimitDao: BudgetLimitDao
-    private lateinit var adapter: BudgetLimitAdapter
-
-    private val categories = listOf(
-        "Food & Dining",
-        "Transportation",
-        "Shopping",
-        "Entertainment",
-        "Bills & Utilities",
-        "Health",
-        "Other"
-    )
+    private lateinit var categoryDao: CategoryDao
+    private var adapter: BudgetLimitAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,10 +23,11 @@ class BudgetLimitsActivity : AppCompatActivity() {
 
         val database = AppDatabase.getDatabase(this)
         budgetLimitDao = database.budgetLimitDao()
+        categoryDao = database.categoryDao()
 
         setupToolbar()
         setupRecyclerView()
-        loadLimits()
+        observeData()
     }
 
     private fun setupToolbar() {
@@ -45,19 +38,27 @@ class BudgetLimitsActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = BudgetLimitAdapter(categories) { category, limit ->
-            saveLimitDebounced(category, limit)
-        }
-        binding.recyclerViewLimits.apply {
-            layoutManager = LinearLayoutManager(this@BudgetLimitsActivity)
-            adapter = this@BudgetLimitsActivity.adapter
-        }
+        binding.recyclerViewLimits.layoutManager = LinearLayoutManager(this)
     }
 
-    private fun loadLimits() {
+    private fun observeData() {
         lifecycleScope.launch {
-            val limits = budgetLimitDao.getAllLimits().first()
-            adapter.setLimits(limits)
+            combine(
+                categoryDao.getAllCategoryNames(),
+                budgetLimitDao.getAllLimits()
+            ) { categories, limits ->
+                Pair(categories, limits)
+            }.collectLatest { (categories, limits) ->
+                if (adapter == null) {
+                    adapter = BudgetLimitAdapter(categories) { category, limit ->
+                        saveLimitDebounced(category, limit)
+                    }
+                    binding.recyclerViewLimits.adapter = adapter
+                } else {
+                    adapter?.updateCategories(categories)
+                }
+                adapter?.setLimits(limits)
+            }
         }
     }
 

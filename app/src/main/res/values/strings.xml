@@ -44,9 +44,14 @@
     <string name="analysis_title">Spending Analysis</string>
     <string name="monthly_total">Monthly total: %1$s</string>
     <string name="total_label">Total: %1$s</string>
-
-
-
-
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="settings_subtitle">Settings &amp; Customization</string>
+    <string name="manage_categories">Manage Categories</string>
+    <string name="new_category">New Category</string>
+    <string name="your_categories">Your Categories</string>
+    <string name="default_label">Default</string>
+    <string name="delete_category">Delete category</string>
+    <string name="enter_category_name">Please enter a category name</string>
 
 </resources>

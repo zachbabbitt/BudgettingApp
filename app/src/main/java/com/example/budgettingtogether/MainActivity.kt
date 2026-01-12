@@ -4,7 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.budgettingtogether.databinding.ActivityMainBinding
 import com.example.budgettingtogether.databinding.ItemBudgetProgressBinding
@@ -31,8 +33,47 @@ class MainActivity : AppCompatActivity() {
         expenseDao = database.expenseDao()
         budgetLimitDao = database.budgetLimitDao()
 
+        setupToolbar()
+        setupNavigationDrawer()
         setupButtons()
         observeData()
+    }
+
+    private fun setupToolbar() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setHomeButtonEnabled(true)
+    }
+
+    private fun setupNavigationDrawer() {
+        val toggle = ActionBarDrawerToggle(
+            this,
+            binding.drawerLayout,
+            binding.toolbar,
+            R.string.navigation_drawer_open,
+            R.string.navigation_drawer_close
+        )
+        binding.drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
+
+        binding.navigationView.setNavigationItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.nav_categories -> {
+                    startActivity(Intent(this, CategoriesActivity::class.java))
+                }
+            }
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+            true
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+        } else {
+            super.onBackPressed()
+        }
     }
 
     private fun setupButtons() {
