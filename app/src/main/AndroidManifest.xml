@@ -30,6 +30,11 @@
             android:exported="false"
             android:label="@string/income_title"
             android:theme="@style/Theme.BudgettingTogether" />
+        <activity
+            android:name=".BudgetLimitsActivity"
+            android:exported="false"
+            android:label="@string/budget_limits_title"
+            android:theme="@style/Theme.BudgettingTogether" />
     </application>
 
 </manifest>

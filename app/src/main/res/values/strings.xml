@@ -27,4 +27,22 @@
     <string name="recurring_none">One-time</string>
     <string name="recurring_weekly">Weekly</string>
     <string name="recurring_monthly">Monthly</string>
+    <string name="expenses_by_category">Expenses by Category</string>
+    <string name="no_expenses_yet">No expenses yet</string>
+    <string name="budget_limits_title">Budget Limits</string>
+    <string name="set_limits">Set Limits</string>
+    <string name="limit">Limit</string>
+    <string name="budget_progress">Budget Progress</string>
+    <string name="no_limits_set">No budget limits set</string>
+    <string name="spent_of_limit">%1$s of %2$s</string>
+    <string name="over_budget">Over budget!</string>
+    <string name="recurring_bills">Recurring Bills</string>
+    <string name="no_recurring_expenses">One Time Bills</string>
+    <string name="filter_by_category">Category Filter</string>
+    <string name="no_expenses_in_category">No Expenses found in this category</string>
+
+
+
+
+
 </resources>
