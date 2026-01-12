@@ -40,6 +40,11 @@
             android:exported="false"
             android:label="@string/analysis_title"
             android:theme="@style/Theme.BudgettingTogether" />
+        <activity
+            android:name=".CategoriesActivity"
+            android:exported="false"
+            android:label="@string/manage_categories"
+            android:theme="@style/Theme.BudgettingTogether" />
     </application>
 
 </manifest>

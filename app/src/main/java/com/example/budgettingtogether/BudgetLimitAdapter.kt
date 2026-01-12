@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.budgettingtogether.databinding.ItemBudgetLimitBinding
 
 class BudgetLimitAdapter(
-    private val categories: List<String>,
+    private var categories: List<String>,
     private val onLimitChanged: (String, Double?) -> Unit
 ) : RecyclerView.Adapter<BudgetLimitAdapter.LimitViewHolder>() {
 
@@ -17,6 +17,11 @@ class BudgetLimitAdapter(
     fun setLimits(budgetLimits: List<BudgetLimit>) {
         limits.clear()
         budgetLimits.forEach { limits[it.category] = it.limitAmount }
+        notifyDataSetChanged()
+    }
+
+    fun updateCategories(newCategories: List<String>) {
+        categories = newCategories
         notifyDataSetChanged()
     }
 

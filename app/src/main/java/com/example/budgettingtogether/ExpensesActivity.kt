@@ -18,16 +18,9 @@ class ExpensesActivity : AppCompatActivity() {
     private lateinit var binding: ActivityExpensesBinding
     private lateinit var expenseAdapter: ExpenseAdapter
     private lateinit var expenseDao: ExpenseDao
+    private lateinit var categoryDao: CategoryDao
 
-    private val categories = listOf(
-        "Food & Dining",
-        "Transportation",
-        "Shopping",
-        "Entertainment",
-        "Bills & Utilities",
-        "Health",
-        "Other"
-    )
+    private var categories: List<String> = emptyList()
 
     private val recurringOptions by lazy {
         listOf(
@@ -44,11 +37,21 @@ class ExpensesActivity : AppCompatActivity() {
 
         val database = AppDatabase.getDatabase(this)
         expenseDao = database.expenseDao()
+        categoryDao = database.categoryDao()
 
         setupToolbar()
         setupRecyclerView()
         setupFab()
         observeExpenses()
+        observeCategories()
+    }
+
+    private fun observeCategories() {
+        lifecycleScope.launch {
+            categoryDao.getAllCategoryNames().collectLatest { categoryList ->
+                categories = categoryList
+            }
+        }
     }
 
     private fun setupToolbar() {

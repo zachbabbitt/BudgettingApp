@@ -16,21 +16,12 @@ class AnalysisActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAnalysisBinding
     private lateinit var expenseDao: ExpenseDao
+    private lateinit var categoryDao: CategoryDao
     private lateinit var recurringAdapter: ExpenseAdapter
-    private lateinit var categoryAdapter: ExpenseAdapter
+    private lateinit var categoryExpenseAdapter: ExpenseAdapter
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
 
-    private val categories = listOf(
-        "All Categories",
-        "Food & Dining",
-        "Transportation",
-        "Shopping",
-        "Entertainment",
-        "Bills & Utilities",
-        "Health",
-        "Other"
-    )
-
+    private var categories: List<String> = listOf("All Categories")
     private var allExpenses: List<Expense> = emptyList()
     private var selectedCategory: String = "All Categories"
 
@@ -41,10 +32,10 @@ class AnalysisActivity : AppCompatActivity() {
 
         val database = AppDatabase.getDatabase(this)
         expenseDao = database.expenseDao()
+        categoryDao = database.categoryDao()
 
         setupToolbar()
         setupRecyclerViews()
-        setupCategoryFilter()
         observeData()
     }
 
@@ -62,17 +53,21 @@ class AnalysisActivity : AppCompatActivity() {
             adapter = recurringAdapter
         }
 
-        categoryAdapter = ExpenseAdapter { /* No delete in analysis view */ }
+        categoryExpenseAdapter = ExpenseAdapter { /* No delete in analysis view */ }
         binding.recyclerViewExpenses.apply {
             layoutManager = LinearLayoutManager(this@AnalysisActivity)
-            adapter = categoryAdapter
+            adapter = categoryExpenseAdapter
         }
     }
 
-    private fun setupCategoryFilter() {
+    private fun setupCategoryFilter(categoryList: List<String>) {
+        categories = listOf("All Categories") + categoryList
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
         binding.spinnerCategoryFilter.setAdapter(adapter)
-        binding.spinnerCategoryFilter.setText(categories[0], false)
+
+        if (binding.spinnerCategoryFilter.text.isNullOrEmpty()) {
+            binding.spinnerCategoryFilter.setText(categories[0], false)
+        }
 
         binding.spinnerCategoryFilter.setOnItemClickListener { _, _, position, _ ->
             selectedCategory = categories[position]
@@ -81,6 +76,12 @@ class AnalysisActivity : AppCompatActivity() {
     }
 
     private fun observeData() {
+        lifecycleScope.launch {
+            categoryDao.getAllCategoryNames().collectLatest { categoryList ->
+                setupCategoryFilter(categoryList)
+            }
+        }
+
         lifecycleScope.launch {
             expenseDao.getRecurringExpenses().collectLatest { recurringExpenses ->
                 updateRecurringSection(recurringExpenses)
@@ -130,7 +131,7 @@ class AnalysisActivity : AppCompatActivity() {
         } else {
             binding.recyclerViewExpenses.visibility = View.VISIBLE
             binding.textViewNoExpenses.visibility = View.GONE
-            categoryAdapter.updateList(filteredExpenses)
+            categoryExpenseAdapter.updateList(filteredExpenses)
 
             val total = filteredExpenses.sumOf { it.amount }
             binding.textViewFilteredTotal.text = getString(R.string.total_label, currencyFormat.format(total))
