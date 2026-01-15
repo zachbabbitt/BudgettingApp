@@ -1,27 +1,45 @@
 package com.example.budgettingtogether
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.budgettingtogether.databinding.ActivityMainBinding
 import com.example.budgettingtogether.databinding.ItemBudgetProgressBinding
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var expenseDao: ExpenseDao
+    private lateinit var incomeDao: IncomeDao
     private lateinit var budgetLimitDao: BudgetLimitDao
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+
+    private var pendingCsvContent: String? = null
+
+    private val createDocumentLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri: Uri? ->
+        uri?.let { saveToUri(it) }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +49,7 @@ class MainActivity : AppCompatActivity() {
 
         val database = AppDatabase.getDatabase(this)
         expenseDao = database.expenseDao()
+        incomeDao = database.incomeDao()
         budgetLimitDao = database.budgetLimitDao()
 
         setupToolbar()
@@ -61,9 +80,84 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_categories -> {
                     startActivity(Intent(this, CategoriesActivity::class.java))
                 }
+                R.id.nav_export_csv -> {
+                    exportToCsv()
+                }
             }
             binding.drawerLayout.closeDrawer(GravityCompat.START)
             true
+        }
+    }
+
+    private fun exportToCsv() {
+        lifecycleScope.launch {
+            val expenses = expenseDao.getAllExpenses().first()
+            val income = incomeDao.getAllIncome().first()
+
+            if (expenses.isEmpty() && income.isEmpty()) {
+                Toast.makeText(this@MainActivity, R.string.export_empty, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            pendingCsvContent = CsvExporter.export(expenses, income)
+
+            AlertDialog.Builder(this@MainActivity)
+                .setTitle(R.string.export_csv)
+                .setItems(arrayOf(
+                    getString(R.string.save_to_device),
+                    getString(R.string.share)
+                )) { _, which ->
+                    when (which) {
+                        0 -> saveToDevice()
+                        1 -> shareCsv()
+                    }
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun saveToDevice() {
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        val fileName = "budget_export_$timestamp.csv"
+        createDocumentLauncher.launch(fileName)
+    }
+
+    private fun shareCsv() {
+        val content = pendingCsvContent ?: return
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        val fileName = "budget_export_$timestamp.csv"
+
+        val file = File(cacheDir, fileName)
+        file.writeText(content)
+
+        val uri = FileProvider.getUriForFile(
+            this,
+            "${packageName}.fileprovider",
+            file
+        )
+
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/csv"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        startActivity(Intent.createChooser(shareIntent, getString(R.string.export_csv)))
+        pendingCsvContent = null
+    }
+
+    private fun saveToUri(uri: Uri) {
+        val content = pendingCsvContent ?: return
+        try {
+            contentResolver.openOutputStream(uri)?.use { outputStream ->
+                outputStream.write(content.toByteArray())
+            }
+            Toast.makeText(this, R.string.export_success, Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        } finally {
+            pendingCsvContent = null
         }
     }
 
