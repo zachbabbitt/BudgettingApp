@@ -15,6 +15,7 @@ class ExpenseAdapter(
 ) : RecyclerView.Adapter<ExpenseAdapter.ExpenseViewHolder>() {
 
     private var expenses: List<Expense> = emptyList()
+    private var runningTotals: List<Double> = emptyList()
     private val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
 
@@ -22,7 +23,20 @@ class ExpenseAdapter(
         val diffCallback = ExpenseDiffCallback(expenses, newExpenses)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         expenses = newExpenses
+        runningTotals = calculateRunningTotals(newExpenses)
         diffResult.dispatchUpdatesTo(this)
+    }
+
+    private fun calculateRunningTotals(expenses: List<Expense>): List<Double> {
+        if (expenses.isEmpty()) return emptyList()
+        // Expenses are sorted newest-first, so calculate from end to start
+        val totals = DoubleArray(expenses.size)
+        var cumulative = 0.0
+        for (i in expenses.indices.reversed()) {
+            cumulative += expenses[i].amount
+            totals[i] = cumulative
+        }
+        return totals.toList()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ExpenseViewHolder {
@@ -35,7 +49,7 @@ class ExpenseAdapter(
     }
 
     override fun onBindViewHolder(holder: ExpenseViewHolder, position: Int) {
-        holder.bind(expenses[position])
+        holder.bind(expenses[position], runningTotals.getOrElse(position) { 0.0 })
     }
 
     override fun getItemCount(): Int = expenses.size
@@ -44,12 +58,16 @@ class ExpenseAdapter(
         private val binding: ItemExpenseBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(expense: Expense) {
+        fun bind(expense: Expense, runningTotal: Double) {
             binding.apply {
                 textViewTitle.text = expense.title
                 textViewAmount.text = currencyFormat.format(expense.amount)
                 textViewCategory.text = expense.category
                 textViewDate.text = dateFormat.format(expense.date)
+                textViewRunningTotal.text = root.context.getString(
+                    R.string.total_label,
+                    currencyFormat.format(runningTotal)
+                )
 
                 when (expense.recurringType) {
                     RecurringType.NONE -> {
