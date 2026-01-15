@@ -23,19 +23,8 @@ class IncomeAdapter(
         val diffCallback = IncomeDiffCallback(incomeList, newList)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         incomeList = newList
-        runningTotals = calculateRunningTotals(newList)
+        runningTotals = RunningTotalCalculator.calculate(newList.map { it.amount })
         diffResult.dispatchUpdatesTo(this)
-    }
-
-    private fun calculateRunningTotals(incomeList: List<Income>): List<Double> {
-        if (incomeList.isEmpty()) return emptyList()
-        val totals = DoubleArray(incomeList.size)
-        var cumulative = 0.0
-        for (i in incomeList.indices.reversed()) {
-            cumulative += incomeList[i].amount
-            totals[i] = cumulative
-        }
-        return totals.toList()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): IncomeViewHolder {

@@ -23,20 +23,8 @@ class ExpenseAdapter(
         val diffCallback = ExpenseDiffCallback(expenses, newExpenses)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         expenses = newExpenses
-        runningTotals = calculateRunningTotals(newExpenses)
+        runningTotals = RunningTotalCalculator.calculate(newExpenses.map { it.amount })
         diffResult.dispatchUpdatesTo(this)
-    }
-
-    private fun calculateRunningTotals(expenses: List<Expense>): List<Double> {
-        if (expenses.isEmpty()) return emptyList()
-        // Expenses are sorted newest-first, so calculate from end to start
-        val totals = DoubleArray(expenses.size)
-        var cumulative = 0.0
-        for (i in expenses.indices.reversed()) {
-            cumulative += expenses[i].amount
-            totals[i] = cumulative
-        }
-        return totals.toList()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ExpenseViewHolder {
