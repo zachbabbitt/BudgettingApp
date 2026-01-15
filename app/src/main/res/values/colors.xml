@@ -12,4 +12,7 @@
     <!-- Semantic colors for light/dark mode -->
     <color name="category_background">#E8E0F0</color>
     <color name="source_background">#E0F2E9</color>
+    <color name="warning_background">#FFCDD2</color>
+    <color name="warning_item_background">#FFEBEE</color>
+    <color name="warning_text">#C62828</color>
 </resources>

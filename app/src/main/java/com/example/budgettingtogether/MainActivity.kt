@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -192,13 +193,63 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             combine(
                 expenseDao.getAllExpenses(),
-                budgetLimitDao.getAllLimits()
-            ) { expenses, limits ->
-                Pair(expenses, limits)
-            }.collectLatest { (expenses, limits) ->
+                budgetLimitDao.getAllLimits(),
+                incomeDao.getAllIncome()
+            ) { expenses, limits, income ->
+                Triple(expenses, limits, income)
+            }.collectLatest { (expenses, limits, income) ->
                 updateProgressBars(expenses, limits)
+                updateWarnings(expenses, limits, income)
             }
         }
+    }
+
+    private fun updateWarnings(expenses: List<Expense>, limits: List<BudgetLimit>, income: List<Income>) {
+        val calendar = Calendar.getInstance()
+        val currentMonth = calendar.get(Calendar.MONTH)
+        val currentYear = calendar.get(Calendar.YEAR)
+
+        // Filter to current month
+        val monthlyExpenses = expenses.filter { expense ->
+            val expenseCalendar = Calendar.getInstance().apply { time = expense.date }
+            expenseCalendar.get(Calendar.MONTH) == currentMonth &&
+                expenseCalendar.get(Calendar.YEAR) == currentYear
+        }
+
+        val monthlyIncome = income.filter { inc ->
+            val incomeCalendar = Calendar.getInstance().apply { time = inc.date }
+            incomeCalendar.get(Calendar.MONTH) == currentMonth &&
+                incomeCalendar.get(Calendar.YEAR) == currentYear
+        }
+
+        val totalLimits = limits.sumOf { it.limitAmount }
+        val totalMonthlyExpenses = monthlyExpenses.sumOf { it.amount }
+        val totalMonthlyIncome = monthlyIncome.sumOf { it.amount }
+
+        // Warning 1: Budget limits exceed income
+        val showWarning1 = totalLimits > totalMonthlyIncome && totalMonthlyIncome > 0
+        binding.textViewWarning1.visibility = if (showWarning1) View.VISIBLE else View.GONE
+        if (showWarning1) {
+            binding.textViewWarning1.text = getString(
+                R.string.warning_limits_exceed_income,
+                currencyFormat.format(totalLimits),
+                currencyFormat.format(totalMonthlyIncome)
+            )
+        }
+
+        // Warning 2: Spending exceeds income
+        val showWarning2 = totalMonthlyExpenses > totalMonthlyIncome && totalMonthlyIncome > 0
+        binding.textViewWarning2.visibility = if (showWarning2) View.VISIBLE else View.GONE
+        if (showWarning2) {
+            binding.textViewWarning2.text = getString(
+                R.string.warning_spending_exceeds_income,
+                currencyFormat.format(totalMonthlyExpenses),
+                currencyFormat.format(totalMonthlyIncome)
+            )
+        }
+
+        // Show/hide the warning card
+        binding.cardWarning.visibility = if (showWarning1 || showWarning2) View.VISIBLE else View.GONE
     }
 
     private fun updateProgressBars(expenses: List<Expense>, limits: List<BudgetLimit>) {

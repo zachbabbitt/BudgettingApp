@@ -58,5 +58,7 @@
     <string name="export_empty">No data to export</string>
     <string name="save_to_device">Save to device</string>
     <string name="share">Share</string>
+    <string name="warning_limits_exceed_income">Your budget limits (%1$s) exceed this month\'s income (%2$s)</string>
+    <string name="warning_spending_exceeds_income">You\'ve spent %1$s this month but only earned %2$s</string>
 
 </resources>
