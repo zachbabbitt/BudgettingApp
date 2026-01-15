@@ -6,6 +6,10 @@
             android:id="@+id/nav_categories"
             android:icon="@android:drawable/ic_menu_sort_by_size"
             android:title="@string/manage_categories" />
+        <item
+            android:id="@+id/nav_export_csv"
+            android:icon="@android:drawable/ic_menu_save"
+            android:title="@string/export_csv" />
     </group>
 
 </menu>
