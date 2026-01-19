@@ -1,6 +1,7 @@
 package com.example.budgettingtogether
 
 import android.content.Context
+import android.content.SharedPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import okhttp3.OkHttpClient
@@ -11,9 +12,17 @@ import java.util.concurrent.TimeUnit
 
 class CurrencyRepository(context: Context) {
 
+    companion object {
+        private const val PREFS_NAME = "currency_prefs"
+        private const val KEY_RECENT_CURRENCIES = "recent_currencies"
+        private const val MAX_RECENT_CURRENCIES = 3
+    }
+
     private val database = AppDatabase.getDatabase(context)
     private val exchangeRateDao = database.exchangeRateDao()
     private val userPreferencesDao = database.userPreferencesDao()
+    private val sharedPreferences: SharedPreferences =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val apiService: ExchangeRateApiService by lazy {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -74,6 +83,10 @@ class CurrencyRepository(context: Context) {
         return userPreferencesDao.getPreferencesOnce()?.defaultCurrencyCodeExpenses ?: "USD"
     }
 
+    suspend fun getDefaultCurrencyIncome() : String {
+        return userPreferencesDao.getPreferencesOnce()?.defaultCurrencyCodeIncome ?: "USD"
+    }
+
     suspend fun setDefaultCurrencyTracking(currencyCode: String) {
         val prefs = userPreferencesDao.getPreferencesOnce() ?: UserPreferences()
         userPreferencesDao.savePreferences(prefs.copy(defaultCurrencyCodeTracking = currencyCode))
@@ -82,6 +95,11 @@ class CurrencyRepository(context: Context) {
     suspend fun setDefaultCurrencyExpenses(currencyCode: String) {
         val prefs = userPreferencesDao.getPreferencesOnce() ?: UserPreferences()
         userPreferencesDao.savePreferences(prefs.copy(defaultCurrencyCodeExpenses = currencyCode))
+    }
+
+    suspend fun setDefaultCurrencyIncome(currencyCode: String) {
+        val prefs = userPreferencesDao.getPreferencesOnce() ?: UserPreferences()
+        userPreferencesDao.savePreferences(prefs.copy(defaultCurrencyCodeIncome = currencyCode))
     }
 
     suspend fun getLastUpdateTime(): Long {
@@ -122,4 +140,25 @@ class CurrencyRepository(context: Context) {
     fun observeDefaultCurrencyTracking(): Flow<String> =
         userPreferencesDao.getPreferences()
             .map { it?.defaultCurrencyCodeTracking ?: "USD" }
+
+
+    fun observeDefaultCurrencyIncome(): Flow<String> =
+        userPreferencesDao.getPreferences()
+            .map { it?.defaultCurrencyCodeIncome ?: "USD" }
+
+    fun getRecentCurrencies(): List<String> {
+        val stored = sharedPreferences.getString(KEY_RECENT_CURRENCIES, "") ?: ""
+        if (stored.isEmpty()) return emptyList()
+        return stored.split(",").filter { it.isNotEmpty() }
+    }
+
+    fun addRecentCurrency(currencyCode: String) {
+        val current = getRecentCurrencies().toMutableList()
+        current.remove(currencyCode)
+        current.add(0, currencyCode)
+        val updated = current.take(MAX_RECENT_CURRENCIES)
+        sharedPreferences.edit()
+            .putString(KEY_RECENT_CURRENCIES, updated.joinToString(","))
+            .apply()
+    }
 }

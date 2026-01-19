@@ -133,11 +133,11 @@ class ExpensesFragment : Fragment() {
         dialogBinding.spinnerRecurring.setAdapter(recurringAdapter)
         dialogBinding.spinnerRecurring.setText(recurringOptions[0], false)
 
-        // Setup currency spinner
-        val currencyAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, currencyCodes)
+        // Setup currency spinner with recent currencies
+        val recentCurrencies = currencyRepository.getRecentCurrencies()
+        val currencyAdapter = CurrencyDropdownAdapter(requireContext(), recentCurrencies, currencyCodes)
         dialogBinding.spinnerCurrency.setAdapter(currencyAdapter)
         dialogBinding.spinnerCurrency.setText(defaultCurrencyExpenses, false)
-
 
         var selectedCurrency = defaultCurrencyExpenses
 
@@ -159,8 +159,10 @@ class ExpensesFragment : Fragment() {
 
         // Update conversion preview when currency changes
         dialogBinding.spinnerCurrency.setOnItemClickListener { _, _, position, _ ->
-            selectedCurrency = currencyCodes[position]
-            updateConversionPreview(dialogBinding, selectedCurrency)
+            currencyAdapter.getCurrencyCodeAtPosition(position)?.let { code ->
+                selectedCurrency = code
+                updateConversionPreview(dialogBinding, selectedCurrency)
+            }
         }
 
         AlertDialog.Builder(requireContext())
@@ -211,6 +213,7 @@ class ExpensesFragment : Fragment() {
                             recurringType = recurringType
                         )
                     }
+                    currencyRepository.addRecentCurrency(entryCurrency)
                     addExpense(expense)
                 }
             }

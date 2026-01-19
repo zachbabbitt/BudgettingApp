@@ -85,6 +85,8 @@
     <string name="default_income_currency">Default Income Currency</string>
     <string name="default_income_currency_description">Set default income currency rate</string>
     <string name="default_income_currency_set">Income set to %1$s</string>
+    <string name="all_currencies">All Currencies</string>
+    <string name="recent_currencies">Recent Currencies</string>
 
 
 </resources>
