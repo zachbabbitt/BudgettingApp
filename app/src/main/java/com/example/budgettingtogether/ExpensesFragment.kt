@@ -29,7 +29,9 @@ class ExpensesFragment : Fragment() {
     private lateinit var currencyRepository: CurrencyRepository
 
     private var categories: List<String> = emptyList()
-    private var defaultCurrency: String = "USD"
+    private var defaultCurrencyExpenses: String = "USD"
+
+    private var defaultCurrencyTracking: String = "USD"
     private val currencyCodes = CurrencyData.currencies.keys.sorted()
 
     private val recurringOptions by lazy {
@@ -59,21 +61,29 @@ class ExpensesFragment : Fragment() {
 
         setupRecyclerView()
         setupFab()
-        loadChangeableSettings();
+        loadChangeableSettings()
+        observeCategories()
+        observeExpenses()
     }
 
     private fun loadChangeableSettings() {
         viewLifecycleOwner.lifecycleScope.launch {
-            loadDefaultCurrency()
+            loadDefaultCurrencyExpenses()
+            loadDefaultCurrencyTracking()
         }
     }
 
-    private suspend fun loadDefaultCurrency() {
-        //defaultCurrency = currencyRepository.getDefaultCurrencyExpenses()
+    private suspend fun loadDefaultCurrencyExpenses() {
 
         currencyRepository.observeDefaultCurrencyExpenses().collectLatest { currency ->
-            defaultCurrency = currency
-            // Trigger any UI updates that depend on this value
+            defaultCurrencyExpenses = currency
+        }
+    }
+
+    private suspend fun loadDefaultCurrencyTracking() {
+
+        currencyRepository.observeDefaultCurrencyTracking().collectLatest { currency ->
+            defaultCurrencyTracking = currency
         }
     }
 
@@ -126,10 +136,10 @@ class ExpensesFragment : Fragment() {
         // Setup currency spinner
         val currencyAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, currencyCodes)
         dialogBinding.spinnerCurrency.setAdapter(currencyAdapter)
-        dialogBinding.spinnerCurrency.setText(defaultCurrency, false)
+        dialogBinding.spinnerCurrency.setText(defaultCurrencyExpenses, false)
 
 
-        var selectedCurrency = defaultCurrency
+        var selectedCurrency = defaultCurrencyExpenses
 
         // Update conversion preview when amount changes (after typing stops)
         val textWatcher = object : TextWatcher {
@@ -182,9 +192,9 @@ class ExpensesFragment : Fragment() {
 
                 // Convert and save
                 viewLifecycleOwner.lifecycleScope.launch {
-                    val convertedAmount = currencyRepository.convert(enteredAmount, entryCurrency, defaultCurrency)
+                    val convertedAmount = currencyRepository.convert(enteredAmount, entryCurrency, defaultCurrencyTracking)
 
-                    val expense = if (entryCurrency != defaultCurrency) {
+                    val expense = if (entryCurrency != defaultCurrencyTracking) {
                         Expense(
                             title = title,
                             amount = convertedAmount,
@@ -212,13 +222,13 @@ class ExpensesFragment : Fragment() {
         val amountStr = dialogBinding.editTextAmount.text.toString().trim()
         val amount = amountStr.toDoubleOrNull()
 
-        if (amount == null || amount <= 0 || selectedCurrency == defaultCurrency) {
+        if (amount == null || amount <= 0 || selectedCurrency == defaultCurrencyTracking) {
             dialogBinding.textViewConversionPreview.visibility = View.GONE
             return
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val preview = currencyRepository.getConversionPreview(amount, selectedCurrency, defaultCurrency)
+            val preview = currencyRepository.getConversionPreview(amount, selectedCurrency, defaultCurrencyTracking)
             dialogBinding.textViewConversionPreview.text = preview
             dialogBinding.textViewConversionPreview.visibility = View.VISIBLE
         }

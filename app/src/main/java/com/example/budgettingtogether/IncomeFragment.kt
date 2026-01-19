@@ -66,12 +66,19 @@ class IncomeFragment : Fragment() {
         setupRecyclerView()
         setupFab()
         observeIncome()
-        loadDefaultCurrency()
+        loadChangeableSettings()
     }
 
-    private fun loadDefaultCurrency() {
+    private fun loadChangeableSettings() {
         viewLifecycleOwner.lifecycleScope.launch {
-            defaultCurrency = currencyRepository.getDefaultCurrencyExpenses()
+            loadDefaultCurrency()
+        }
+    }
+
+    private suspend fun loadDefaultCurrency() {
+
+        currencyRepository.observeDefaultCurrencyIncome().collectLatest { currency ->
+            defaultCurrency = currency
         }
     }
 

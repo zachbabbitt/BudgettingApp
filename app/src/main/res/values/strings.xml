@@ -82,4 +82,9 @@
     <string name="refresh_rates">Refresh Rates</string>
     <string name="default_expense_currency">Default Expense Currency</string>
     <string name="default_expense_currency_description">Set a default currency rate for expenses. All expenses will be converted to the tracking currency when showing later.</string>
+    <string name="default_income_currency">Default Income Currency</string>
+    <string name="default_income_currency_description">Set default income currency rate</string>
+    <string name="default_income_currency_set">Income set to %1$s</string>
+
+
 </resources>

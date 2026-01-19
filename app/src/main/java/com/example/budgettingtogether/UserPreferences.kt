@@ -9,5 +9,6 @@ data class UserPreferences(
     val id: Int = 1,
     val defaultCurrencyCodeExpenses: String = "USD",
     val defaultCurrencyCodeTracking: String = "USD",
+    val defaultCurrencyCodeIncome: String = "USD",
     val lastRatesUpdate: Long = 0L
 )
