@@ -41,50 +41,72 @@ class CurrencySettingsActivity : AppCompatActivity() {
     }
 
     private fun setupDefaultCurrencySpinner() {
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, currencyDisplayNames)
-        val adapterExpenseCurrency = ArrayAdapter(this,android.R.layout.simple_dropdown_item_1line, currencyDisplayNames )
-        val adapterExpenseIncome = ArrayAdapter(this,android.R.layout.simple_dropdown_item_1line, currencyDisplayNames )
-
-        binding.spinnerDefaultCurrency.setAdapter(adapter)
-        binding.spinnerDefaultExpenseCurrency.setAdapter(adapterExpenseCurrency);
-        binding.spinnerDefaultExpenseCurrencyIncome.setAdapter(adapterExpenseIncome);
+        refreshCurrencyAdapters()
 
         binding.spinnerDefaultCurrency.setOnItemClickListener { _, _, position, _ ->
-            val selectedCode = currencyCodes[position]
-            lifecycleScope.launch {
-                currencyRepository.setDefaultCurrencyTracking(selectedCode)
-                Toast.makeText(
-                    this@CurrencySettingsActivity,
-                    getString(R.string.default_currency_set, selectedCode),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            (binding.spinnerDefaultCurrency.adapter as? CurrencyDropdownAdapter)
+                ?.getCurrencyCodeAtPosition(position)?.let { selectedCode ->
+                    currencyRepository.addRecentCurrency(selectedCode)
+                    binding.spinnerDefaultCurrency.setText(CurrencyData.getDisplayName(selectedCode), false)
+                    refreshCurrencyAdapters()
+                    lifecycleScope.launch {
+                        currencyRepository.setDefaultCurrencyTracking(selectedCode)
+                        Toast.makeText(
+                            this@CurrencySettingsActivity,
+                            getString(R.string.default_currency_set, selectedCode),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
         }
 
-
         binding.spinnerDefaultExpenseCurrency.setOnItemClickListener { _, _, position, _ ->
-            val selectedCode = currencyCodes[position]
-            lifecycleScope.launch {
-                currencyRepository.setDefaultCurrencyExpenses(selectedCode)
-                Toast.makeText(
-                    this@CurrencySettingsActivity,
-                    getString(R.string.default_currency_set, selectedCode),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            (binding.spinnerDefaultExpenseCurrency.adapter as? CurrencyDropdownAdapter)
+                ?.getCurrencyCodeAtPosition(position)?.let { selectedCode ->
+                    currencyRepository.addRecentCurrency(selectedCode)
+                    binding.spinnerDefaultExpenseCurrency.setText(CurrencyData.getDisplayName(selectedCode), false)
+                    refreshCurrencyAdapters()
+                    lifecycleScope.launch {
+                        currencyRepository.setDefaultCurrencyExpenses(selectedCode)
+                        Toast.makeText(
+                            this@CurrencySettingsActivity,
+                            getString(R.string.default_currency_set, selectedCode),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
         }
 
         binding.spinnerDefaultExpenseCurrencyIncome.setOnItemClickListener { _, _, position, _ ->
-            val selectedCode = currencyCodes[position]
-            lifecycleScope.launch {
-                currencyRepository.setDefaultCurrencyIncome(selectedCode)
-                Toast.makeText(
-                    this@CurrencySettingsActivity,
-                    getString(R.string.default_income_currency_set, selectedCode),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            (binding.spinnerDefaultExpenseCurrencyIncome.adapter as? CurrencyDropdownAdapter)
+                ?.getCurrencyCodeAtPosition(position)?.let { selectedCode ->
+                    currencyRepository.addRecentCurrency(selectedCode)
+                    binding.spinnerDefaultExpenseCurrencyIncome.setText(CurrencyData.getDisplayName(selectedCode), false)
+                    refreshCurrencyAdapters()
+                    lifecycleScope.launch {
+                        currencyRepository.setDefaultCurrencyIncome(selectedCode)
+                        Toast.makeText(
+                            this@CurrencySettingsActivity,
+                            getString(R.string.default_income_currency_set, selectedCode),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
         }
+    }
+
+    private fun refreshCurrencyAdapters() {
+        val recentCurrencies = currencyRepository.getRecentCurrencies()
+
+        binding.spinnerDefaultCurrency.setAdapter(
+            CurrencyDropdownAdapter(this, recentCurrencies, currencyCodes, useDisplayNames = true)
+        )
+        binding.spinnerDefaultExpenseCurrency.setAdapter(
+            CurrencyDropdownAdapter(this, recentCurrencies, currencyCodes, useDisplayNames = true)
+        )
+        binding.spinnerDefaultExpenseCurrencyIncome.setAdapter(
+            CurrencyDropdownAdapter(this, recentCurrencies, currencyCodes, useDisplayNames = true)
+        )
     }
 
     private fun setupRefreshButton() {
