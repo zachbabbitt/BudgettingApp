@@ -71,7 +71,7 @@ class IncomeFragment : Fragment() {
 
     private fun loadDefaultCurrency() {
         viewLifecycleOwner.lifecycleScope.launch {
-            defaultCurrency = currencyRepository.getDefaultCurrency()
+            defaultCurrency = currencyRepository.getDefaultCurrencyExpenses()
         }
     }
 

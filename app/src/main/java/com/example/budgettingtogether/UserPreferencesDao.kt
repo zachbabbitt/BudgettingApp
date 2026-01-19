@@ -16,4 +16,5 @@ interface UserPreferencesDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun savePreferences(preferences: UserPreferences)
+
 }

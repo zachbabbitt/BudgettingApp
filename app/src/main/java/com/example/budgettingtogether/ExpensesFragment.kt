@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.databinding.FragmentExpensesBinding
 import com.example.budgettingtogether.databinding.DialogAddExpenseBinding
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -58,14 +59,21 @@ class ExpensesFragment : Fragment() {
 
         setupRecyclerView()
         setupFab()
-        observeExpenses()
-        observeCategories()
-        loadDefaultCurrency()
+        loadChangeableSettings();
     }
 
-    private fun loadDefaultCurrency() {
+    private fun loadChangeableSettings() {
         viewLifecycleOwner.lifecycleScope.launch {
-            defaultCurrency = currencyRepository.getDefaultCurrency()
+            loadDefaultCurrency()
+        }
+    }
+
+    private suspend fun loadDefaultCurrency() {
+        //defaultCurrency = currencyRepository.getDefaultCurrencyExpenses()
+
+        currencyRepository.observeDefaultCurrencyExpenses().collectLatest { currency ->
+            defaultCurrency = currency
+            // Trigger any UI updates that depend on this value
         }
     }
 
@@ -103,6 +111,7 @@ class ExpensesFragment : Fragment() {
     }
 
     private fun showAddExpenseDialog() {
+
         val dialogBinding = DialogAddExpenseBinding.inflate(LayoutInflater.from(requireContext()))
 
         // Setup category spinner
@@ -118,6 +127,7 @@ class ExpensesFragment : Fragment() {
         val currencyAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, currencyCodes)
         dialogBinding.spinnerCurrency.setAdapter(currencyAdapter)
         dialogBinding.spinnerCurrency.setText(defaultCurrency, false)
+
 
         var selectedCurrency = defaultCurrency
 

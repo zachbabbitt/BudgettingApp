@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class UserPreferences(
     @PrimaryKey
     val id: Int = 1,
-    val defaultCurrencyCode: String = "USD",
+    val defaultCurrencyCodeExpenses: String = "USD",
+    val defaultCurrencyCodeTracking: String = "USD",
     val lastRatesUpdate: Long = 0L
 )

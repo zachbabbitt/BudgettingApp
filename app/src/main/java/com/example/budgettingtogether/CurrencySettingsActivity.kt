@@ -42,12 +42,27 @@ class CurrencySettingsActivity : AppCompatActivity() {
 
     private fun setupDefaultCurrencySpinner() {
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, currencyDisplayNames)
+        val adapterExpenseCurrency = ArrayAdapter(this,android.R.layout.simple_dropdown_item_1line, currencyDisplayNames )
         binding.spinnerDefaultCurrency.setAdapter(adapter)
+        binding.spinnerDefaultExpenseCurrency.setAdapter(adapterExpenseCurrency);
 
         binding.spinnerDefaultCurrency.setOnItemClickListener { _, _, position, _ ->
             val selectedCode = currencyCodes[position]
             lifecycleScope.launch {
-                currencyRepository.setDefaultCurrency(selectedCode)
+                currencyRepository.setDefaultCurrencyTracking(selectedCode)
+                Toast.makeText(
+                    this@CurrencySettingsActivity,
+                    getString(R.string.default_currency_set, selectedCode),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+
+        binding.spinnerDefaultExpenseCurrency.setOnItemClickListener { _, _, position, _ ->
+            val selectedCode = currencyCodes[position]
+            lifecycleScope.launch {
+                currencyRepository.setDefaultCurrencyExpenses(selectedCode)
                 Toast.makeText(
                     this@CurrencySettingsActivity,
                     getString(R.string.default_currency_set, selectedCode),
@@ -66,10 +81,18 @@ class CurrencySettingsActivity : AppCompatActivity() {
     private fun loadData() {
         lifecycleScope.launch {
             // Load default currency
-            val defaultCurrency = currencyRepository.getDefaultCurrency()
-            val index = currencyCodes.indexOf(defaultCurrency)
-            if (index >= 0) {
-                binding.spinnerDefaultCurrency.setText(currencyDisplayNames[index], false)
+            val defaultCurrencyTracking = currencyRepository.getDefaultCurrencyTracking()
+            val defaultCurrencyExpenses = currencyRepository.getDefaultCurrencyExpenses()
+
+            val indexTracking = currencyCodes.indexOf(defaultCurrencyTracking)
+            val indexExpenses = currencyCodes.indexOf(defaultCurrencyExpenses)
+
+            if (indexExpenses >= 0) {
+                binding.spinnerDefaultCurrency.setText(currencyDisplayNames[indexTracking], false)
+            }
+
+            if (indexExpenses >= 0) {
+                binding.spinnerDefaultExpenseCurrency.setText(currencyDisplayNames[indexExpenses], false)
             }
 
             // Load last update time and rates status

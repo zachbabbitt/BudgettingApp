@@ -1,6 +1,8 @@
 package com.example.budgettingtogether
 
 import android.content.Context
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -64,13 +66,22 @@ class CurrencyRepository(context: Context) {
         }
     }
 
-    suspend fun getDefaultCurrency(): String {
-        return userPreferencesDao.getPreferencesOnce()?.defaultCurrencyCode ?: "USD"
+    suspend fun getDefaultCurrencyTracking(): String {
+        return userPreferencesDao.getPreferencesOnce()?.defaultCurrencyCodeTracking ?: "USD"
     }
 
-    suspend fun setDefaultCurrency(currencyCode: String) {
+    suspend fun getDefaultCurrencyExpenses(): String {
+        return userPreferencesDao.getPreferencesOnce()?.defaultCurrencyCodeExpenses ?: "USD"
+    }
+
+    suspend fun setDefaultCurrencyTracking(currencyCode: String) {
         val prefs = userPreferencesDao.getPreferencesOnce() ?: UserPreferences()
-        userPreferencesDao.savePreferences(prefs.copy(defaultCurrencyCode = currencyCode))
+        userPreferencesDao.savePreferences(prefs.copy(defaultCurrencyCodeTracking = currencyCode))
+    }
+
+    suspend fun setDefaultCurrencyExpenses(currencyCode: String) {
+        val prefs = userPreferencesDao.getPreferencesOnce() ?: UserPreferences()
+        userPreferencesDao.savePreferences(prefs.copy(defaultCurrencyCodeExpenses = currencyCode))
     }
 
     suspend fun getLastUpdateTime(): Long {
@@ -103,4 +114,12 @@ class CurrencyRepository(context: Context) {
         val symbol = CurrencyData.getSymbol(toCurrency)
         return String.format("≈ %s%.2f %s", symbol, converted, toCurrency)
     }
+
+    fun observeDefaultCurrencyExpenses(): Flow<String> =
+        userPreferencesDao.getPreferences()
+            .map { it?.defaultCurrencyCodeExpenses ?: "USD" }
+
+    fun observeDefaultCurrencyTracking(): Flow<String> =
+        userPreferencesDao.getPreferences()
+            .map { it?.defaultCurrencyCodeTracking ?: "USD" }
 }
