@@ -13,13 +13,26 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Date
 
-@Database(entities = [Expense::class, Income::class, BudgetLimit::class, Category::class], version = 5, exportSchema = true)
+@Database(
+    entities = [
+        Expense::class,
+        Income::class,
+        BudgetLimit::class,
+        Category::class,
+        UserPreferences::class,
+        ExchangeRate::class
+    ],
+    version = 6,
+    exportSchema = true
+)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun expenseDao(): ExpenseDao
     abstract fun incomeDao(): IncomeDao
     abstract fun budgetLimitDao(): BudgetLimitDao
     abstract fun categoryDao(): CategoryDao
+    abstract fun userPreferencesDao(): UserPreferencesDao
+    abstract fun exchangeRateDao(): ExchangeRateDao
 
     companion object {
         @Volatile
@@ -33,6 +46,40 @@ abstract class AppDatabase : RoomDatabase() {
                         isDefault INTEGER NOT NULL DEFAULT 0
                     )
                 """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add currency columns to expenses
+                db.execSQL("ALTER TABLE expenses ADD COLUMN originalAmount REAL")
+                db.execSQL("ALTER TABLE expenses ADD COLUMN originalCurrency TEXT")
+
+                // Add currency columns to income
+                db.execSQL("ALTER TABLE income ADD COLUMN originalAmount REAL")
+                db.execSQL("ALTER TABLE income ADD COLUMN originalCurrency TEXT")
+
+                // Create user_preferences table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS user_preferences (
+                        id INTEGER NOT NULL PRIMARY KEY,
+                        defaultCurrencyCode TEXT NOT NULL DEFAULT 'USD',
+                        lastRatesUpdate INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+
+                // Create exchange_rates table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS exchange_rates (
+                        currencyCode TEXT NOT NULL PRIMARY KEY,
+                        rateToUsd REAL NOT NULL,
+                        currencyName TEXT NOT NULL,
+                        symbol TEXT NOT NULL
+                    )
+                """.trimIndent())
+
+                // Insert default preferences
+                db.execSQL("INSERT OR IGNORE INTO user_preferences (id, defaultCurrencyCode, lastRatesUpdate) VALUES (1, 'USD', 0)")
             }
         }
 
@@ -53,13 +100,15 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "budget_database"
                 )
-                .addMigrations(MIGRATION_4_5)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
                         INSTANCE?.let { database ->
                             CoroutineScope(Dispatchers.IO).launch {
                                 database.categoryDao().insertAll(DEFAULT_CATEGORIES)
+                                // Insert default preferences on fresh install
+                                database.userPreferencesDao().savePreferences(UserPreferences())
                             }
                         }
                     }

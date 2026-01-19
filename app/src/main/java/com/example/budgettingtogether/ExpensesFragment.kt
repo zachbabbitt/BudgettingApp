@@ -1,6 +1,8 @@
 package com.example.budgettingtogether
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,8 +25,11 @@ class ExpensesFragment : Fragment() {
     private lateinit var expenseAdapter: ExpenseAdapter
     private lateinit var expenseDao: ExpenseDao
     private lateinit var categoryDao: CategoryDao
+    private lateinit var currencyRepository: CurrencyRepository
 
     private var categories: List<String> = emptyList()
+    private var defaultCurrency: String = "USD"
+    private val currencyCodes = CurrencyData.currencies.keys.sorted()
 
     private val recurringOptions by lazy {
         listOf(
@@ -49,11 +54,19 @@ class ExpensesFragment : Fragment() {
         val database = AppDatabase.getDatabase(requireContext())
         expenseDao = database.expenseDao()
         categoryDao = database.categoryDao()
+        currencyRepository = CurrencyRepository(requireContext())
 
         setupRecyclerView()
         setupFab()
         observeExpenses()
         observeCategories()
+        loadDefaultCurrency()
+    }
+
+    private fun loadDefaultCurrency() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            defaultCurrency = currencyRepository.getDefaultCurrency()
+        }
     }
 
     private fun observeCategories() {
@@ -92,12 +105,43 @@ class ExpensesFragment : Fragment() {
     private fun showAddExpenseDialog() {
         val dialogBinding = DialogAddExpenseBinding.inflate(LayoutInflater.from(requireContext()))
 
+        // Setup category spinner
         val categoryAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, categories)
         dialogBinding.spinnerCategory.setAdapter(categoryAdapter)
 
+        // Setup recurring spinner
         val recurringAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, recurringOptions)
         dialogBinding.spinnerRecurring.setAdapter(recurringAdapter)
         dialogBinding.spinnerRecurring.setText(recurringOptions[0], false)
+
+        // Setup currency spinner
+        val currencyAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, currencyCodes)
+        dialogBinding.spinnerCurrency.setAdapter(currencyAdapter)
+        dialogBinding.spinnerCurrency.setText(defaultCurrency, false)
+
+        var selectedCurrency = defaultCurrency
+
+        // Update conversion preview when amount changes (after typing stops)
+        val textWatcher = object : TextWatcher {
+            private var runnable: Runnable? = null
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                runnable?.let { dialogBinding.editTextAmount.removeCallbacks(it) }
+                runnable = Runnable {
+                    updateConversionPreview(dialogBinding, selectedCurrency)
+                }
+                dialogBinding.editTextAmount.postDelayed(runnable, 500)
+            }
+        }
+        dialogBinding.editTextAmount.addTextChangedListener(textWatcher)
+
+        // Update conversion preview when currency changes
+        dialogBinding.spinnerCurrency.setOnItemClickListener { _, _, position, _ ->
+            selectedCurrency = currencyCodes[position]
+            updateConversionPreview(dialogBinding, selectedCurrency)
+        }
 
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.add_expense)
@@ -106,14 +150,15 @@ class ExpensesFragment : Fragment() {
                 val title = dialogBinding.editTextTitle.text.toString().trim()
                 val amountStr = dialogBinding.editTextAmount.text.toString().trim()
                 val category = dialogBinding.spinnerCategory.text.toString().trim()
+                val entryCurrency = dialogBinding.spinnerCurrency.text.toString().trim()
 
                 if (title.isEmpty() || amountStr.isEmpty() || category.isEmpty()) {
                     Toast.makeText(requireContext(), R.string.fill_all_fields, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
 
-                val amount = amountStr.toDoubleOrNull()
-                if (amount == null || amount <= 0) {
+                val enteredAmount = amountStr.toDoubleOrNull()
+                if (enteredAmount == null || enteredAmount <= 0) {
                     Toast.makeText(requireContext(), R.string.invalid_amount, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
@@ -125,10 +170,48 @@ class ExpensesFragment : Fragment() {
                     else -> RecurringType.NONE
                 }
 
-                addExpense(Expense(title = title, amount = amount, category = category, recurringType = recurringType))
+                // Convert and save
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val convertedAmount = currencyRepository.convert(enteredAmount, entryCurrency, defaultCurrency)
+
+                    val expense = if (entryCurrency != defaultCurrency) {
+                        Expense(
+                            title = title,
+                            amount = convertedAmount,
+                            category = category,
+                            recurringType = recurringType,
+                            originalAmount = enteredAmount,
+                            originalCurrency = entryCurrency
+                        )
+                    } else {
+                        Expense(
+                            title = title,
+                            amount = enteredAmount,
+                            category = category,
+                            recurringType = recurringType
+                        )
+                    }
+                    addExpense(expense)
+                }
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    private fun updateConversionPreview(dialogBinding: DialogAddExpenseBinding, selectedCurrency: String) {
+        val amountStr = dialogBinding.editTextAmount.text.toString().trim()
+        val amount = amountStr.toDoubleOrNull()
+
+        if (amount == null || amount <= 0 || selectedCurrency == defaultCurrency) {
+            dialogBinding.textViewConversionPreview.visibility = View.GONE
+            return
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val preview = currencyRepository.getConversionPreview(amount, selectedCurrency, defaultCurrency)
+            dialogBinding.textViewConversionPreview.text = preview
+            dialogBinding.textViewConversionPreview.visibility = View.VISIBLE
+        }
     }
 
     private fun addExpense(expense: Expense) {

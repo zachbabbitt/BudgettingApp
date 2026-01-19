@@ -14,5 +14,7 @@ data class Income(
     val source: String,
     val date: Date = Date(),
     val recurringType: RecurringType = RecurringType.NONE,
-    val notes: String = ""
+    val notes: String = "",
+    val originalAmount: Double? = null,
+    val originalCurrency: String? = null
 )

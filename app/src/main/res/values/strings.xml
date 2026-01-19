@@ -65,4 +65,20 @@
     <string name="warning_limits_exceed_income">Your budget limits (%1$s) exceed this month\'s income (%2$s)</string>
     <string name="warning_spending_exceeds_income">You\'ve spent %1$s this month but only earned %2$s</string>
 
+    <!-- Currency Settings -->
+    <string name="currency_settings">Currency Settings</string>
+    <string name="currency">Currency</string>
+    <string name="default_tracking_currency">Default Tracking Currency</string>
+    <string name="default_currency_description">All expenses and income will be converted to and displayed in this currency.</string>
+    <string name="exchange_rates">Exchange Rates</string>
+    <string name="refresh">Refresh</string>
+    <string name="last_updated">Last updated: %1$s</string>
+    <string name="last_updated_never">Last updated: Never</string>
+    <string name="no_rates_message">No exchange rates available.\nTap Refresh to fetch rates.</string>
+    <string name="rates_updated">Exchange rates updated</string>
+    <string name="rates_update_failed">Failed to update rates: %1$s</string>
+    <string name="default_currency_set">Default currency set to %1$s</string>
+    <string name="currencies_available">%1$d currencies available</string>
+    <string name="refresh_rates">Refresh Rates</string>
+
 </resources>
