@@ -78,6 +78,9 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_budget_limits -> {
                     startActivity(Intent(this, BudgetLimitsActivity::class.java))
                 }
+                R.id.nav_currency -> {
+                    startActivity(Intent(this, CurrencySettingsActivity::class.java))
+                }
                 R.id.nav_categories -> {
                     startActivity(Intent(this, CategoriesActivity::class.java))
                 }
