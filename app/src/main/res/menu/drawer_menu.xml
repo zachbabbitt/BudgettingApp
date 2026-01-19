@@ -3,6 +3,10 @@
 
     <group android:checkableBehavior="none">
         <item
+            android:id="@+id/nav_budget_limits"
+            android:icon="@android:drawable/ic_menu_agenda"
+            android:title="@string/budget_limits_title" />
+        <item
             android:id="@+id/nav_categories"
             android:icon="@android:drawable/ic_menu_sort_by_size"
             android:title="@string/manage_categories" />
