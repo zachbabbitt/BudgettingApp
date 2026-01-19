@@ -1,0 +1,136 @@
+package com.example.budgettingtogether
+
+import android.content.Intent
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.example.budgettingtogether.databinding.FragmentHomeBinding
+import com.example.budgettingtogether.databinding.ItemBudgetProgressBinding
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import java.text.NumberFormat
+import java.util.Locale
+
+class HomeFragment : Fragment() {
+
+    private var _binding: FragmentHomeBinding? = null
+    private val binding get() = _binding!!
+
+    private lateinit var expenseDao: ExpenseDao
+    private lateinit var budgetLimitDao: BudgetLimitDao
+    private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentHomeBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val database = AppDatabase.getDatabase(requireContext())
+        expenseDao = database.expenseDao()
+        budgetLimitDao = database.budgetLimitDao()
+
+        setupButtons()
+        observeData()
+    }
+
+    private fun setupButtons() {
+        binding.buttonSetLimits.setOnClickListener {
+            startActivity(Intent(requireContext(), BudgetLimitsActivity::class.java))
+        }
+    }
+
+    private fun observeData() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            combine(
+                expenseDao.getAllExpenses(),
+                budgetLimitDao.getAllLimits()
+            ) { expenses, limits ->
+                Pair(expenses, limits)
+            }.collectLatest { (expenses, limits) ->
+                updateProgressBars(expenses, limits)
+            }
+        }
+    }
+
+    private fun updateProgressBars(expenses: List<Expense>, limits: List<BudgetLimit>) {
+        binding.linearLayoutProgress.removeAllViews()
+
+        if (limits.isEmpty()) {
+            binding.scrollViewProgress.visibility = View.GONE
+            binding.textViewNoLimits.visibility = View.VISIBLE
+            return
+        }
+
+        binding.scrollViewProgress.visibility = View.VISIBLE
+        binding.textViewNoLimits.visibility = View.GONE
+
+        // Calculate spent per category
+        val spentByCategory = expenses
+            .groupBy { it.category }
+            .mapValues { entry -> entry.value.sumOf { it.amount } }
+
+        // Create progress bars for each limit
+        limits.sortedBy { it.category }.forEach { limit ->
+            val spent = spentByCategory[limit.category] ?: 0.0
+            addProgressBar(limit.category, spent, limit.limitAmount)
+        }
+    }
+
+    private fun addProgressBar(category: String, spent: Double, limit: Double) {
+        val itemBinding = ItemBudgetProgressBinding.inflate(
+            LayoutInflater.from(requireContext()),
+            binding.linearLayoutProgress,
+            false
+        )
+
+        val percentage = ((spent / limit) * 100).coerceAtMost(100.0).toInt()
+        val actualPercentage = ((spent / limit) * 100).toInt()
+
+        itemBinding.textViewCategory.text = category
+        itemBinding.textViewAmount.text = getString(
+            R.string.spent_of_limit,
+            currencyFormat.format(spent),
+            currencyFormat.format(limit)
+        )
+        itemBinding.progressBar.progress = percentage
+
+        // Set color based on percentage
+        val progressDrawable = when {
+            actualPercentage >= 100 -> R.drawable.progress_bar_red
+            actualPercentage >= 75 -> R.drawable.progress_bar_yellow
+            else -> R.drawable.progress_bar_green
+        }
+        itemBinding.progressBar.progressDrawable = requireContext().getDrawable(progressDrawable)
+
+        // Show percentage text
+        itemBinding.textViewPercentage.text = if (actualPercentage > 100) {
+            getString(R.string.over_budget)
+        } else {
+            "$actualPercentage%"
+        }
+
+        // Color the percentage text if over budget
+        if (actualPercentage >= 100) {
+            itemBinding.textViewPercentage.setTextColor(requireContext().getColor(android.R.color.holo_red_dark))
+            itemBinding.textViewPercentage.alpha = 1f
+        }
+
+        binding.linearLayoutProgress.addView(itemBinding.root)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}

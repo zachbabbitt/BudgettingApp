@@ -58,5 +58,9 @@
     <string name="export_empty">No data to export</string>
     <string name="save_to_device">Save to device</string>
     <string name="share">Share</string>
+    <string name="tab_home">Home</string>
+    <string name="tab_expenses">Expenses</string>
+    <string name="tab_income">Income</string>
+    <string name="tab_analysis">Analysis</string>
 
 </resources>

@@ -3,8 +3,6 @@ package com.example.budgettingtogether
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
@@ -14,13 +12,10 @@ import androidx.core.content.FileProvider
 import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.budgettingtogether.databinding.ActivityMainBinding
-import com.example.budgettingtogether.databinding.ItemBudgetProgressBinding
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.collectLatest
+import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
-import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -30,8 +25,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var expenseDao: ExpenseDao
     private lateinit var incomeDao: IncomeDao
-    private lateinit var budgetLimitDao: BudgetLimitDao
-    private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
 
     private var pendingCsvContent: String? = null
 
@@ -40,6 +33,13 @@ class MainActivity : AppCompatActivity() {
     ) { uri: Uri? ->
         uri?.let { saveToUri(it) }
     }
+
+    private val tabTitles = arrayOf(
+        R.string.tab_home,
+        R.string.tab_expenses,
+        R.string.tab_income,
+        R.string.tab_analysis
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,12 +50,10 @@ class MainActivity : AppCompatActivity() {
         val database = AppDatabase.getDatabase(this)
         expenseDao = database.expenseDao()
         incomeDao = database.incomeDao()
-        budgetLimitDao = database.budgetLimitDao()
 
         setupToolbar()
         setupNavigationDrawer()
-        setupButtons()
-        observeData()
+        setupViewPager()
     }
 
     private fun setupToolbar() {
@@ -77,6 +75,9 @@ class MainActivity : AppCompatActivity() {
 
         binding.navigationView.setNavigationItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.nav_budget_limits -> {
+                    startActivity(Intent(this, BudgetLimitsActivity::class.java))
+                }
                 R.id.nav_categories -> {
                     startActivity(Intent(this, CategoriesActivity::class.java))
                 }
@@ -87,6 +88,15 @@ class MainActivity : AppCompatActivity() {
             binding.drawerLayout.closeDrawer(GravityCompat.START)
             true
         }
+    }
+
+    private fun setupViewPager() {
+        val pagerAdapter = MainPagerAdapter(this)
+        binding.viewPager.adapter = pagerAdapter
+
+        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            tab.text = getString(tabTitles[position])
+        }.attach()
     }
 
     private fun exportToCsv() {
@@ -168,102 +178,5 @@ class MainActivity : AppCompatActivity() {
         } else {
             super.onBackPressed()
         }
-    }
-
-    private fun setupButtons() {
-        binding.buttonExpenses.setOnClickListener {
-            startActivity(Intent(this, ExpensesActivity::class.java))
-        }
-
-        binding.buttonIncome.setOnClickListener {
-            startActivity(Intent(this, IncomeActivity::class.java))
-        }
-
-        binding.buttonSetLimits.setOnClickListener {
-            startActivity(Intent(this, BudgetLimitsActivity::class.java))
-        }
-
-        binding.buttonAnalysis.setOnClickListener {
-            startActivity(Intent(this, AnalysisActivity::class.java))
-        }
-    }
-
-    private fun observeData() {
-        lifecycleScope.launch {
-            combine(
-                expenseDao.getAllExpenses(),
-                budgetLimitDao.getAllLimits()
-            ) { expenses, limits ->
-                Pair(expenses, limits)
-            }.collectLatest { (expenses, limits) ->
-                updateProgressBars(expenses, limits)
-            }
-        }
-    }
-
-    private fun updateProgressBars(expenses: List<Expense>, limits: List<BudgetLimit>) {
-        binding.linearLayoutProgress.removeAllViews()
-
-        if (limits.isEmpty()) {
-            binding.scrollViewProgress.visibility = View.GONE
-            binding.textViewNoLimits.visibility = View.VISIBLE
-            return
-        }
-
-        binding.scrollViewProgress.visibility = View.VISIBLE
-        binding.textViewNoLimits.visibility = View.GONE
-
-        // Calculate spent per category
-        val spentByCategory = expenses
-            .groupBy { it.category }
-            .mapValues { entry -> entry.value.sumOf { it.amount } }
-
-        // Create progress bars for each limit
-        limits.sortedBy { it.category }.forEach { limit ->
-            val spent = spentByCategory[limit.category] ?: 0.0
-            addProgressBar(limit.category, spent, limit.limitAmount)
-        }
-    }
-
-    private fun addProgressBar(category: String, spent: Double, limit: Double) {
-        val itemBinding = ItemBudgetProgressBinding.inflate(
-            LayoutInflater.from(this),
-            binding.linearLayoutProgress,
-            false
-        )
-
-        val percentage = ((spent / limit) * 100).coerceAtMost(100.0).toInt()
-        val actualPercentage = ((spent / limit) * 100).toInt()
-
-        itemBinding.textViewCategory.text = category
-        itemBinding.textViewAmount.text = getString(
-            R.string.spent_of_limit,
-            currencyFormat.format(spent),
-            currencyFormat.format(limit)
-        )
-        itemBinding.progressBar.progress = percentage
-
-        // Set color based on percentage
-        val progressDrawable = when {
-            actualPercentage >= 100 -> R.drawable.progress_bar_red
-            actualPercentage >= 75 -> R.drawable.progress_bar_yellow
-            else -> R.drawable.progress_bar_green
-        }
-        itemBinding.progressBar.progressDrawable = getDrawable(progressDrawable)
-
-        // Show percentage text
-        itemBinding.textViewPercentage.text = if (actualPercentage > 100) {
-            getString(R.string.over_budget)
-        } else {
-            "$actualPercentage%"
-        }
-
-        // Color the percentage text if over budget
-        if (actualPercentage >= 100) {
-            itemBinding.textViewPercentage.setTextColor(getColor(android.R.color.holo_red_dark))
-            itemBinding.textViewPercentage.alpha = 1f
-        }
-
-        binding.linearLayoutProgress.addView(itemBinding.root)
     }
 }
