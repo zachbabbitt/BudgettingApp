@@ -116,6 +116,7 @@ class CurrencyRepository(context: Context) {
         return exchangeRateDao.getCount() > 0
     }
 
+    // Keep in sync with CurrencyConversionTest's convert
     suspend fun convert(amount: Double, fromCurrency: String, toCurrency: String): Double {
         if (fromCurrency == toCurrency) return amount
 
