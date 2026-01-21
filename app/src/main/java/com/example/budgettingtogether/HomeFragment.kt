@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.budgettingtogether.categories.CategoryDao
 import com.example.budgettingtogether.core.AppDatabase
+import com.example.budgettingtogether.currency.CurrencyData
 import com.example.budgettingtogether.currency.CurrencyRepository
 import com.example.budgettingtogether.databinding.FragmentHomeBinding
 import com.example.budgettingtogether.databinding.ItemBudgetProgressBinding
@@ -23,9 +24,7 @@ import com.example.budgettingtogether.limits.BudgetLimitsActivity
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
 import java.util.Calendar
-import java.util.Locale
 
 class HomeFragment : Fragment() {
 
@@ -37,7 +36,7 @@ class HomeFragment : Fragment() {
     private lateinit var budgetLimitDao: BudgetLimitDao
     private lateinit var categoryDao: CategoryDao
     private lateinit var currencyRepository: CurrencyRepository
-    private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    private var currencySymbol: String = "$"
 
     private var categories: List<String> = emptyList()
     private var defaultCurrencyExpenses: String = "USD"
@@ -95,11 +94,6 @@ class HomeFragment : Fragment() {
                 defaultCurrencyExpenses = currency
             }
         }
-        viewLifecycleOwner.lifecycleScope.launch {
-            currencyRepository.observeDefaultCurrencyTracking().collectLatest { currency ->
-                defaultCurrencyTracking = currency
-            }
-        }
     }
 
     private fun showAddExpenseDialog() {
@@ -120,9 +114,21 @@ class HomeFragment : Fragment() {
             combine(
                 expenseDao.getAllExpenses(),
                 budgetLimitDao.getAllLimits(),
-                incomeDao.getAllIncome()
-            ) { expenses, limits, income ->
-                Triple(expenses, limits, income)
+                incomeDao.getAllIncome(),
+                currencyRepository.observeDefaultCurrencyTracking()
+            ) { expenses, limits, income, trackingCurrency ->
+                defaultCurrencyTracking = trackingCurrency
+                currencySymbol = CurrencyData.getSymbol(trackingCurrency)
+
+                // Convert expenses to new tracking currency
+                val convertedExpenses = expenses.map { expense ->
+                    val originalAmount = expense.originalAmount ?: expense.amount
+                    val originalCurrency = expense.originalCurrency ?: "USD"
+                    val convertedAmount = currencyRepository.convert(originalAmount, originalCurrency, trackingCurrency)
+                    expense.copy(amount = convertedAmount)
+                }
+
+                Triple(convertedExpenses, limits, income)
             }.collectLatest { (expenses, limits, income) ->
                 updateProgressBars(expenses, limits)
                 updateWarnings(expenses, limits, income)
@@ -158,8 +164,8 @@ class HomeFragment : Fragment() {
         if (showWarning1) {
             binding.textViewWarning1.text = getString(
                 R.string.warning_limits_exceed_income,
-                currencyFormat.format(totalLimits),
-                currencyFormat.format(totalMonthlyIncome)
+                formatCurrency(totalLimits),
+                formatCurrency(totalMonthlyIncome)
             )
         }
 
@@ -169,8 +175,8 @@ class HomeFragment : Fragment() {
         if (showWarning2) {
             binding.textViewWarning2.text = getString(
                 R.string.warning_spending_exceeds_income,
-                currencyFormat.format(totalMonthlyExpenses),
-                currencyFormat.format(totalMonthlyIncome)
+                formatCurrency(totalMonthlyExpenses),
+                formatCurrency(totalMonthlyIncome)
             )
         }
 
@@ -215,8 +221,8 @@ class HomeFragment : Fragment() {
         itemBinding.textViewCategory.text = category
         itemBinding.textViewAmount.text = getString(
             R.string.spent_of_limit,
-            currencyFormat.format(spent),
-            currencyFormat.format(limit)
+            formatCurrency(spent),
+            formatCurrency(limit)
         )
         itemBinding.progressBar.progress = percentage
 
@@ -242,6 +248,10 @@ class HomeFragment : Fragment() {
         }
 
         binding.linearLayoutProgress.addView(itemBinding.root)
+    }
+
+    private fun formatCurrency(amount: Double): String {
+        return "$currencySymbol${String.format("%.2f", amount)}"
     }
 
     override fun onDestroyView() {
