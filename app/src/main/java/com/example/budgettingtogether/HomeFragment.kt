@@ -24,7 +24,13 @@ class HomeFragment : Fragment() {
     private lateinit var expenseDao: ExpenseDao
     private lateinit var incomeDao: IncomeDao
     private lateinit var budgetLimitDao: BudgetLimitDao
+    private lateinit var categoryDao: CategoryDao
+    private lateinit var currencyRepository: CurrencyRepository
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+
+    private var categories: List<String> = emptyList()
+    private var defaultCurrencyExpenses: String = "USD"
+    private var defaultCurrencyTracking: String = "USD"
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -42,15 +48,60 @@ class HomeFragment : Fragment() {
         expenseDao = database.expenseDao()
         incomeDao = database.incomeDao()
         budgetLimitDao = database.budgetLimitDao()
+        categoryDao = database.categoryDao()
+        currencyRepository = CurrencyRepository(requireContext())
 
         setupButtons()
+        setupFab()
         observeData()
+        observeCategories()
+        loadCurrencySettings()
     }
 
     private fun setupButtons() {
         binding.buttonSetLimits.setOnClickListener {
             startActivity(Intent(requireContext(), BudgetLimitsActivity::class.java))
         }
+    }
+
+    private fun setupFab() {
+        binding.fabAddExpense.setOnClickListener {
+            showAddExpenseDialog()
+        }
+    }
+
+    private fun observeCategories() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            categoryDao.getAllCategoryNames().collectLatest { categoryList ->
+                categories = categoryList
+            }
+        }
+    }
+
+    private fun loadCurrencySettings() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            currencyRepository.observeDefaultCurrencyExpenses().collectLatest { currency ->
+                defaultCurrencyExpenses = currency
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            currencyRepository.observeDefaultCurrencyTracking().collectLatest { currency ->
+                defaultCurrencyTracking = currency
+            }
+        }
+    }
+
+    private fun showAddExpenseDialog() {
+        AddExpenseDialogHelper(
+            context = requireContext(),
+            lifecycleOwner = viewLifecycleOwner,
+            categories = categories,
+            currencyRepository = currencyRepository,
+            defaultCurrencyExpenses = defaultCurrencyExpenses,
+            defaultCurrencyTracking = defaultCurrencyTracking
+        ) { expense ->
+            expenseDao.insert(expense)
+        }.show()
     }
 
     private fun observeData() {
