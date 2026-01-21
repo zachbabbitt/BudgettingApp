@@ -119,7 +119,16 @@ class HomeFragment : Fragment() {
             ) { expenses, limits, income, trackingCurrency ->
                 defaultCurrencyTracking = trackingCurrency
                 currencySymbol = CurrencyData.getSymbol(trackingCurrency)
-                Triple(expenses, limits, income)
+
+                // Convert expenses to new tracking currency
+                val convertedExpenses = expenses.map { expense ->
+                    val originalAmount = expense.originalAmount ?: expense.amount
+                    val originalCurrency = expense.originalCurrency ?: "USD"
+                    val convertedAmount = currencyRepository.convert(originalAmount, originalCurrency, trackingCurrency)
+                    expense.copy(amount = convertedAmount)
+                }
+
+                Triple(convertedExpenses, limits, income)
             }.collectLatest { (expenses, limits, income) ->
                 updateProgressBars(expenses, limits)
                 updateWarnings(expenses, limits, income)
