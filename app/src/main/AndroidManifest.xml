@@ -23,32 +23,32 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ExpensesActivity"
+            android:name=".expenses.ExpensesActivity"
             android:exported="false"
             android:label="@string/expenses_title"
             android:theme="@style/Theme.BudgettingTogether" />
         <activity
-            android:name=".IncomeActivity"
+            android:name=".income.IncomeActivity"
             android:exported="false"
             android:label="@string/income_title"
             android:theme="@style/Theme.BudgettingTogether" />
         <activity
-            android:name=".BudgetLimitsActivity"
+            android:name=".limits.BudgetLimitsActivity"
             android:exported="false"
             android:label="@string/budget_limits_title"
             android:theme="@style/Theme.BudgettingTogether" />
         <activity
-            android:name=".AnalysisActivity"
+            android:name=".analysis.AnalysisActivity"
             android:exported="false"
             android:label="@string/analysis_title"
             android:theme="@style/Theme.BudgettingTogether" />
         <activity
-            android:name=".CategoriesActivity"
+            android:name=".categories.CategoriesActivity"
             android:exported="false"
             android:label="@string/manage_categories"
             android:theme="@style/Theme.BudgettingTogether" />
         <activity
-            android:name=".CurrencySettingsActivity"
+            android:name=".currency.CurrencySettingsActivity"
             android:exported="false"
             android:label="@string/currency_settings"
             android:theme="@style/Theme.BudgettingTogether" />

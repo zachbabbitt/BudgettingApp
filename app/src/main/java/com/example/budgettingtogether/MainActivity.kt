@@ -11,7 +11,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.budgettingtogether.categories.CategoriesActivity
+import com.example.budgettingtogether.core.AppDatabase
+import com.example.budgettingtogether.currency.CurrencySettingsActivity
 import com.example.budgettingtogether.databinding.ActivityMainBinding
+import com.example.budgettingtogether.expenses.ExpenseDao
+import com.example.budgettingtogether.income.IncomeDao
+import com.example.budgettingtogether.limits.BudgetLimitsActivity
+import com.example.budgettingtogether.util.CsvExporter
 import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch

@@ -3,6 +3,9 @@ package com.example.budgettingtogether
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.example.budgettingtogether.analysis.AnalysisFragment
+import com.example.budgettingtogether.expenses.ExpensesFragment
+import com.example.budgettingtogether.income.IncomeFragment
 
 class MainPagerAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapter(fragmentActivity) {
 

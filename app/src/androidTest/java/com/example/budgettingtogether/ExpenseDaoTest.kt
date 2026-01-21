@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.budgettingtogether.core.AppDatabase
+import com.example.budgettingtogether.expenses.Expense
+import com.example.budgettingtogether.expenses.ExpenseDao
+import com.example.budgettingtogether.util.RecurringType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -79,9 +83,24 @@ class ExpenseDaoTest {
 
     @Test
     fun getRecurringExpenses_returnsOnlyRecurring() = runTest {
-        val oneTime = Expense(title = "Groceries", amount = 50.0, category = "Food", recurringType = RecurringType.NONE)
-        val weekly = Expense(title = "Gym", amount = 10.0, category = "Health", recurringType = RecurringType.WEEKLY)
-        val monthly = Expense(title = "Netflix", amount = 15.0, category = "Entertainment", recurringType = RecurringType.MONTHLY)
+        val oneTime = Expense(
+            title = "Groceries",
+            amount = 50.0,
+            category = "Food",
+            recurringType = RecurringType.NONE
+        )
+        val weekly = Expense(
+            title = "Gym",
+            amount = 10.0,
+            category = "Health",
+            recurringType = RecurringType.WEEKLY
+        )
+        val monthly = Expense(
+            title = "Netflix",
+            amount = 15.0,
+            category = "Entertainment",
+            recurringType = RecurringType.MONTHLY
+        )
 
         expenseDao.insert(oneTime)
         expenseDao.insert(weekly)
@@ -132,9 +151,30 @@ class ExpenseDaoTest {
 
     @Test
     fun getExpensesByRecurringType_filtersCorrectly() = runTest {
-        expenseDao.insert(Expense(title = "A", amount = 10.0, category = "Food", recurringType = RecurringType.WEEKLY))
-        expenseDao.insert(Expense(title = "B", amount = 20.0, category = "Food", recurringType = RecurringType.WEEKLY))
-        expenseDao.insert(Expense(title = "C", amount = 30.0, category = "Food", recurringType = RecurringType.MONTHLY))
+        expenseDao.insert(
+            Expense(
+                title = "A",
+                amount = 10.0,
+                category = "Food",
+                recurringType = RecurringType.WEEKLY
+            )
+        )
+        expenseDao.insert(
+            Expense(
+                title = "B",
+                amount = 20.0,
+                category = "Food",
+                recurringType = RecurringType.WEEKLY
+            )
+        )
+        expenseDao.insert(
+            Expense(
+                title = "C",
+                amount = 30.0,
+                category = "Food",
+                recurringType = RecurringType.MONTHLY
+            )
+        )
 
         val weeklyExpenses = expenseDao.getExpensesByRecurringType(RecurringType.WEEKLY.name).first()
         assertEquals(2, weeklyExpenses.size)

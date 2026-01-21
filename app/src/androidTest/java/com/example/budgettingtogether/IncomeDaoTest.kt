@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.budgettingtogether.core.AppDatabase
+import com.example.budgettingtogether.income.Income
+import com.example.budgettingtogether.income.IncomeDao
+import com.example.budgettingtogether.util.RecurringType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -79,9 +83,24 @@ class IncomeDaoTest {
 
     @Test
     fun getRecurringIncome_returnsOnlyRecurring() = runTest {
-        val oneTime = Income(title = "Bonus", amount = 1000.0, source = "Salary", recurringType = RecurringType.NONE)
-        val weekly = Income(title = "Part-time", amount = 500.0, source = "Freelance", recurringType = RecurringType.WEEKLY)
-        val monthly = Income(title = "Salary", amount = 5000.0, source = "Salary", recurringType = RecurringType.MONTHLY)
+        val oneTime = Income(
+            title = "Bonus",
+            amount = 1000.0,
+            source = "Salary",
+            recurringType = RecurringType.NONE
+        )
+        val weekly = Income(
+            title = "Part-time",
+            amount = 500.0,
+            source = "Freelance",
+            recurringType = RecurringType.WEEKLY
+        )
+        val monthly = Income(
+            title = "Salary",
+            amount = 5000.0,
+            source = "Salary",
+            recurringType = RecurringType.MONTHLY
+        )
 
         incomeDao.insert(oneTime)
         incomeDao.insert(weekly)
@@ -145,9 +164,30 @@ class IncomeDaoTest {
 
     @Test
     fun getIncomeByRecurringType_filtersCorrectly() = runTest {
-        incomeDao.insert(Income(title = "A", amount = 100.0, source = "Salary", recurringType = RecurringType.MONTHLY))
-        incomeDao.insert(Income(title = "B", amount = 200.0, source = "Salary", recurringType = RecurringType.MONTHLY))
-        incomeDao.insert(Income(title = "C", amount = 300.0, source = "Freelance", recurringType = RecurringType.WEEKLY))
+        incomeDao.insert(
+            Income(
+                title = "A",
+                amount = 100.0,
+                source = "Salary",
+                recurringType = RecurringType.MONTHLY
+            )
+        )
+        incomeDao.insert(
+            Income(
+                title = "B",
+                amount = 200.0,
+                source = "Salary",
+                recurringType = RecurringType.MONTHLY
+            )
+        )
+        incomeDao.insert(
+            Income(
+                title = "C",
+                amount = 300.0,
+                source = "Freelance",
+                recurringType = RecurringType.WEEKLY
+            )
+        )
 
         val monthlyIncome = incomeDao.getIncomeByRecurringType(RecurringType.MONTHLY.name).first()
         assertEquals(2, monthlyIncome.size)
