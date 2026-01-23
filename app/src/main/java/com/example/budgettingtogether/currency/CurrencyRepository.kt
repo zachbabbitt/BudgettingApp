@@ -3,6 +3,8 @@ package com.example.budgettingtogether.currency
 import android.content.Context
 import android.content.SharedPreferences
 import com.example.budgettingtogether.core.AppDatabase
+import com.example.budgettingtogether.limits.BudgetLimit
+import com.example.budgettingtogether.limits.BudgetLimitDao
 import com.example.budgettingtogether.util.UserPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -134,6 +136,32 @@ class CurrencyRepository(context: Context) {
         val converted = convert(amount, fromCurrency, toCurrency)
         val symbol = CurrencyData.getSymbol(toCurrency)
         return String.format("≈ %s%.2f %s", symbol, converted, toCurrency)
+    }
+
+    suspend fun convertBudgetLimitsToNewCurrency(
+        budgetLimitDao: BudgetLimitDao,
+        fromCurrency: String,
+        toCurrency: String
+    ): Result<Unit> {
+        if (fromCurrency == toCurrency) return Result.success(Unit)
+
+        return try {
+            val limits = budgetLimitDao.getAllLimitsOnce()
+
+            val convertedLimits = limits.map { limit ->
+                val convertedAmount = convert(limit.limitAmount, fromCurrency, toCurrency)
+                limit.copy(
+                    limitAmount = convertedAmount,
+                    currencyCode = toCurrency
+                )
+            }
+
+            budgetLimitDao.updateAll(convertedLimits)
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     fun observeDefaultCurrencyExpenses(): Flow<String> =

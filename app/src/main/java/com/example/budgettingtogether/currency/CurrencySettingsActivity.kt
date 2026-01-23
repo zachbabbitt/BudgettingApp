@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.budgettingtogether.R
+import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.databinding.ActivityCurrencySettingsBinding
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -50,12 +51,40 @@ class CurrencySettingsActivity : AppCompatActivity() {
                     binding.spinnerDefaultCurrency.setText(CurrencyData.getDisplayName(selectedCode), false)
                     refreshCurrencyAdapters()
                     lifecycleScope.launch {
+                        val oldCurrency = currencyRepository.getDefaultCurrencyTracking()
                         currencyRepository.setDefaultCurrencyTracking(selectedCode)
-                        Toast.makeText(
-                            this@CurrencySettingsActivity,
-                            getString(R.string.default_currency_set, selectedCode),
-                            Toast.LENGTH_SHORT
-                        ).show()
+
+                        if (oldCurrency != selectedCode) {
+                            val budgetLimitDao = AppDatabase.getDatabase(this@CurrencySettingsActivity).budgetLimitDao()
+                            val result = currencyRepository.convertBudgetLimitsToNewCurrency(
+                                budgetLimitDao,
+                                oldCurrency,
+                                selectedCode
+                            )
+
+                            result.fold(
+                                onSuccess = {
+                                    Toast.makeText(
+                                        this@CurrencySettingsActivity,
+                                        getString(R.string.default_currency_set, selectedCode),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                onFailure = { e ->
+                                    Toast.makeText(
+                                        this@CurrencySettingsActivity,
+                                        getString(R.string.limits_conversion_failed, e.message),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            )
+                        } else {
+                            Toast.makeText(
+                                this@CurrencySettingsActivity,
+                                getString(R.string.default_currency_set, selectedCode),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 }
         }

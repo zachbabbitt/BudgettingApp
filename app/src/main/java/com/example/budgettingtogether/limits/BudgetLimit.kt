@@ -7,5 +7,6 @@ import androidx.room.PrimaryKey
 data class BudgetLimit(
     @PrimaryKey
     val category: String,
-    val limitAmount: Double
+    val limitAmount: Double,
+    val currencyCode: String = "USD"
 )
