@@ -34,6 +34,7 @@
     <string name="limit">Limit</string>
     <string name="budget_progress">Budget Progress</string>
     <string name="no_limits_set">No budget limits set</string>
+    <string name="total_limits">Total Limits</string>
     <string name="spent_of_limit">%1$s of %2$s</string>
     <string name="over_budget">Over budget!</string>
     <string name="recurring_bills">Recurring Bills</string>

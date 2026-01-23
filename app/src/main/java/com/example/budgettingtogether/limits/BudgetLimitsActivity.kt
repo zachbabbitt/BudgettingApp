@@ -71,6 +71,9 @@ class BudgetLimitsActivity : AppCompatActivity() {
                     adapter?.updateCurrency(currencySymbol)
                 }
                 adapter?.setLimits(limits)
+
+                val totalLimits = limits.sumOf { it.limitAmount }
+                binding.textViewTotalLimits.text = String.format("%s%.2f", currencySymbol, totalLimits)
             }
         }
     }
