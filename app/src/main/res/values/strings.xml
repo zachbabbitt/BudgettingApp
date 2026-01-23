@@ -78,6 +78,7 @@
     <string name="rates_updated">Exchange rates updated</string>
     <string name="rates_update_failed">Failed to update rates: %1$s</string>
     <string name="default_currency_set">Default tracking currency set to %1$s</string>
+    <string name="limits_conversion_failed">Failed to convert budget limits: %1$s</string>
     <string name="currencies_available">%1$d currencies available</string>
     <string name="refresh_rates">Refresh Rates</string>
     <string name="default_expense_currency">Default Expense Currency</string>

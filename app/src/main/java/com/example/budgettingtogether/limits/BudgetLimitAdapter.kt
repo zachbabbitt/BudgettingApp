@@ -9,6 +9,7 @@ import com.example.budgettingtogether.databinding.ItemBudgetLimitBinding
 
 class BudgetLimitAdapter(
     private var categories: List<String>,
+    private var currencySymbol: String,
     private val onLimitChanged: (String, Double?) -> Unit
 ) : RecyclerView.Adapter<BudgetLimitAdapter.LimitViewHolder>() {
 
@@ -18,6 +19,13 @@ class BudgetLimitAdapter(
 
     private val limits = mutableMapOf<String, Double>()
     private var isInitialLoad = true
+
+    fun updateCurrency(newSymbol: String) {
+        if (currencySymbol != newSymbol) {
+            currencySymbol = newSymbol
+            notifyDataSetChanged()
+        }
+    }
 
     override fun getItemId(position: Int): Long {
         return categories[position].hashCode().toLong()
@@ -68,6 +76,7 @@ class BudgetLimitAdapter(
 
         fun bind(category: String) {
             binding.textViewCategory.text = category
+            binding.textInputLimit.prefixText = currencySymbol
 
             // Remove previous watcher to avoid triggering on setText
             textWatcher?.let { binding.editTextLimit.removeTextChangedListener(it) }
