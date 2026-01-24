@@ -63,6 +63,7 @@
     <string name="tab_expenses">Expenses</string>
     <string name="tab_income">Income</string>
     <string name="tab_analysis">Analysis</string>
+    <string name="tab_calendar">Calendar</string>
     <string name="warning_limits_exceed_income">Your budget limits (%1$s) exceed this month\'s income (%2$s)</string>
     <string name="warning_spending_exceeds_income">You\'ve spent %1$s this month but only earned %2$s</string>
 
@@ -90,5 +91,19 @@
     <string name="all_currencies">All Currencies</string>
     <string name="recent_currencies">Recent Currencies</string>
 
+    <!-- Calendar -->
+    <string name="this_week">This Week</string>
+    <string name="no_expenses">-</string>
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
+    <string name="day_sun">Sun</string>
+    <string name="day_mon">Mon</string>
+    <string name="day_tue">Tue</string>
+    <string name="day_wed">Wed</string>
+    <string name="day_thu">Thu</string>
+    <string name="day_fri">Fri</string>
+    <string name="day_sat">Sat</string>
+    <string name="no_expenses_for_day">No expenses for this day</string>
+    <string name="day_total">Total: %1$s</string>
 
 </resources>

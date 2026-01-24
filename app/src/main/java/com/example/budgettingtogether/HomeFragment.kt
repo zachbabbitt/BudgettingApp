@@ -196,8 +196,19 @@ class HomeFragment : Fragment() {
         binding.scrollViewProgress.visibility = View.VISIBLE
         binding.textViewNoLimits.visibility = View.GONE
 
-        // Calculate spent per category
-        val spentByCategory = expenses
+        // Filter expenses to current month only
+        val calendar = Calendar.getInstance()
+        val currentMonth = calendar.get(Calendar.MONTH)
+        val currentYear = calendar.get(Calendar.YEAR)
+
+        val monthlyExpenses = expenses.filter { expense ->
+            val expenseCalendar = Calendar.getInstance().apply { time = expense.date }
+            expenseCalendar.get(Calendar.MONTH) == currentMonth &&
+                expenseCalendar.get(Calendar.YEAR) == currentYear
+        }
+
+        // Calculate spent per category (using monthly expenses only)
+        val spentByCategory = monthlyExpenses
             .groupBy { it.category }
             .mapValues { entry -> entry.value.sumOf { it.amount } }
 

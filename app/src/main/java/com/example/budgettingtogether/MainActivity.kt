@@ -16,9 +16,12 @@ import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.currency.CurrencySettingsActivity
 import com.example.budgettingtogether.databinding.ActivityMainBinding
 import com.example.budgettingtogether.expenses.ExpenseDao
+import com.example.budgettingtogether.income.IncomeActivity
 import com.example.budgettingtogether.income.IncomeDao
 import com.example.budgettingtogether.limits.BudgetLimitsActivity
+import com.example.budgettingtogether.recurring.RecurringExpenseManager
 import com.example.budgettingtogether.util.CsvExporter
+import com.example.budgettingtogether.util.UserPreferencesDao
 import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -32,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var expenseDao: ExpenseDao
     private lateinit var incomeDao: IncomeDao
+    private lateinit var userPreferencesDao: UserPreferencesDao
 
     private var pendingCsvContent: String? = null
 
@@ -44,8 +48,8 @@ class MainActivity : AppCompatActivity() {
     private val tabTitles = arrayOf(
         R.string.tab_home,
         R.string.tab_expenses,
-        R.string.tab_income,
-        R.string.tab_analysis
+        R.string.tab_analysis,
+        R.string.tab_calendar
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,6 +61,13 @@ class MainActivity : AppCompatActivity() {
         val database = AppDatabase.getDatabase(this)
         expenseDao = database.expenseDao()
         incomeDao = database.incomeDao()
+        userPreferencesDao = database.userPreferencesDao()
+
+        // Generate recurring expenses on app launch
+        lifecycleScope.launch {
+            RecurringExpenseManager(expenseDao, userPreferencesDao)
+                .generateMonthlyRecurringExpensesIfNeeded()
+        }
 
         setupToolbar()
         setupNavigationDrawer()
@@ -82,6 +93,9 @@ class MainActivity : AppCompatActivity() {
 
         binding.navigationView.setNavigationItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.nav_income -> {
+                    startActivity(Intent(this, IncomeActivity::class.java))
+                }
                 R.id.nav_budget_limits -> {
                     startActivity(Intent(this, BudgetLimitsActivity::class.java))
                 }
