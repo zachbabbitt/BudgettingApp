@@ -42,6 +42,11 @@ class HomeFragment : Fragment() {
     private var defaultCurrencyExpenses: String = "USD"
     private var defaultCurrencyTracking: String = "USD"
 
+    // Cache for refreshing on resume
+    private var cachedExpenses: List<Expense> = emptyList()
+    private var cachedLimits: List<BudgetLimit> = emptyList()
+    private var cachedIncome: List<Income> = emptyList()
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -66,6 +71,15 @@ class HomeFragment : Fragment() {
         observeData()
         observeCategories()
         loadCurrencySettings()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh progress bars with current date when returning to fragment
+        if (cachedExpenses.isNotEmpty() || cachedLimits.isNotEmpty()) {
+            updateProgressBars(cachedExpenses, cachedLimits)
+            updateWarnings(cachedExpenses, cachedLimits, cachedIncome)
+        }
     }
 
     private fun setupButtons() {
@@ -130,6 +144,11 @@ class HomeFragment : Fragment() {
 
                 Triple(convertedExpenses, limits, income)
             }.collectLatest { (expenses, limits, income) ->
+                // Cache data for refresh on resume
+                cachedExpenses = expenses
+                cachedLimits = limits
+                cachedIncome = income
+
                 updateProgressBars(expenses, limits)
                 updateWarnings(expenses, limits, income)
             }
@@ -196,8 +215,19 @@ class HomeFragment : Fragment() {
         binding.scrollViewProgress.visibility = View.VISIBLE
         binding.textViewNoLimits.visibility = View.GONE
 
-        // Calculate spent per category
-        val spentByCategory = expenses
+        // Filter expenses to current month only
+        val calendar = Calendar.getInstance()
+        val currentMonth = calendar.get(Calendar.MONTH)
+        val currentYear = calendar.get(Calendar.YEAR)
+
+        val monthlyExpenses = expenses.filter { expense ->
+            val expenseCalendar = Calendar.getInstance().apply { time = expense.date }
+            expenseCalendar.get(Calendar.MONTH) == currentMonth &&
+                expenseCalendar.get(Calendar.YEAR) == currentYear
+        }
+
+        // Calculate spent per category (using monthly expenses only)
+        val spentByCategory = monthlyExpenses
             .groupBy { it.category }
             .mapValues { entry -> entry.value.sumOf { it.amount } }
 

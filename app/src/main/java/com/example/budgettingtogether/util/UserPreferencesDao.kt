@@ -17,4 +17,7 @@ interface UserPreferencesDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun savePreferences(preferences: UserPreferences)
 
+    @Query("UPDATE user_preferences SET lastRecurringGenerationMonth = :month, lastRecurringGenerationYear = :year WHERE id = 1")
+    suspend fun updateLastRecurringGeneration(month: Int, year: Int)
+
 }

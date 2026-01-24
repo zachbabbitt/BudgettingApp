@@ -10,5 +10,7 @@ data class UserPreferences(
     val defaultCurrencyCodeExpenses: String = "USD",
     val defaultCurrencyCodeTracking: String = "USD",
     val defaultCurrencyCodeIncome: String = "USD",
-    val lastRatesUpdate: Long = 0L
+    val lastRatesUpdate: Long = 0L,
+    val lastRecurringGenerationMonth: Int = -1,
+    val lastRecurringGenerationYear: Int = -1
 )

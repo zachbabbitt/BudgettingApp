@@ -35,7 +35,7 @@ import java.util.Date
         UserPreferences::class,
         ExchangeRate::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -112,6 +112,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add recurring generation tracking columns
+                db.execSQL("ALTER TABLE user_preferences ADD COLUMN lastRecurringGenerationMonth INTEGER NOT NULL DEFAULT -1")
+                db.execSQL("ALTER TABLE user_preferences ADD COLUMN lastRecurringGenerationYear INTEGER NOT NULL DEFAULT -1")
+            }
+        }
+
         private val DEFAULT_CATEGORIES = listOf(
             Category("Food & Dining", true),
             Category("Transportation", true),
@@ -129,7 +137,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "budget_database"
                 )
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

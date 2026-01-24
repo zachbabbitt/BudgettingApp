@@ -25,4 +25,10 @@ interface ExpenseDao {
 
     @Query("SELECT SUM(amount) FROM expenses")
     fun getTotalAmount(): Flow<Double?>
+
+    @Query("SELECT * FROM expenses WHERE recurringType = 'MONTHLY'")
+    suspend fun getMonthlyRecurringExpensesOnce(): List<Expense>
+
+    @Query("SELECT COUNT(*) FROM expenses WHERE title = :title AND category = :category AND recurringType = :recurringType AND date >= :monthStart AND date < :monthEnd")
+    suspend fun countMatchingExpensesInMonth(title: String, category: String, recurringType: String, monthStart: Long, monthEnd: Long): Int
 }
