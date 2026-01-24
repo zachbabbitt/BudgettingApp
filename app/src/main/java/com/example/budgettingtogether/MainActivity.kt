@@ -63,15 +63,18 @@ class MainActivity : AppCompatActivity() {
         incomeDao = database.incomeDao()
         userPreferencesDao = database.userPreferencesDao()
 
-        // Generate recurring expenses on app launch
+        setupToolbar()
+        setupNavigationDrawer()
+        setupViewPager()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Check for recurring expenses when returning to app (e.g., after date change)
         lifecycleScope.launch {
             RecurringExpenseManager(expenseDao, userPreferencesDao)
                 .generateMonthlyRecurringExpensesIfNeeded()
         }
-
-        setupToolbar()
-        setupNavigationDrawer()
-        setupViewPager()
     }
 
     private fun setupToolbar() {

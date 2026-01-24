@@ -58,25 +58,19 @@ class RecurringExpenseManager(
                 monthEnd = monthEnd
             )
 
-            // Only create if no matching expense exists this month
-            // Note: We check for 1 because the template itself may already be in this month
-            if (existingCount <= 1) {
-                // Check if the template itself was created this month
-                val templateInCurrentMonth = template.date.time >= monthStart && template.date.time < monthEnd
-
-                if (!templateInCurrentMonth) {
-                    // Create a new expense entry based on the template
-                    val newExpense = Expense(
-                        title = template.title,
-                        amount = template.amount,
-                        category = template.category,
-                        date = Date(),
-                        recurringType = RecurringType.MONTHLY,
-                        originalAmount = template.originalAmount,
-                        originalCurrency = template.originalCurrency
-                    )
-                    expenseDao.insert(newExpense)
-                }
+            // Only create if no matching expense exists this month yet
+            if (existingCount == 0) {
+                // Create a new expense entry based on the template
+                val newExpense = Expense(
+                    title = template.title,
+                    amount = template.amount,
+                    category = template.category,
+                    date = Date(),
+                    recurringType = RecurringType.MONTHLY,
+                    originalAmount = template.originalAmount,
+                    originalCurrency = template.originalCurrency
+                )
+                expenseDao.insert(newExpense)
             }
         }
 
