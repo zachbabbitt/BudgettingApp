@@ -14,6 +14,7 @@ import com.example.budgettingtogether.R
 import com.example.budgettingtogether.databinding.FragmentExpensesBinding
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class ExpensesFragment : Fragment() {
 
@@ -28,6 +29,7 @@ class ExpensesFragment : Fragment() {
     private var categories: List<String> = emptyList()
     private var defaultCurrencyExpenses: String = "USD"
     private var defaultCurrencyTracking: String = "USD"
+    private var allExpenses: List<Expense> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -101,9 +103,34 @@ class ExpensesFragment : Fragment() {
     private fun observeExpenses() {
         viewLifecycleOwner.lifecycleScope.launch {
             expenseDao.getAllExpenses().collectLatest { expenses ->
-                expenseAdapter.updateList(expenses)
-                updateTotalDisplay(expenses)
+                allExpenses = expenses
+                updateDisplayedExpenses()
             }
+        }
+    }
+
+    private fun updateDisplayedExpenses() {
+        val monthlyExpenses = filterByCurrentMonth(allExpenses)
+        expenseAdapter.updateList(monthlyExpenses)
+        updateTotalDisplay(monthlyExpenses)
+    }
+
+    private fun filterByCurrentMonth(expenses: List<Expense>): List<Expense> {
+        val calendar = Calendar.getInstance()
+        val currentMonth = calendar.get(Calendar.MONTH)
+        val currentYear = calendar.get(Calendar.YEAR)
+
+        return expenses.filter { expense ->
+            val expenseCalendar = Calendar.getInstance().apply { time = expense.date }
+            expenseCalendar.get(Calendar.MONTH) == currentMonth &&
+                expenseCalendar.get(Calendar.YEAR) == currentYear
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (allExpenses.isNotEmpty()) {
+            updateDisplayedExpenses()
         }
     }
 
