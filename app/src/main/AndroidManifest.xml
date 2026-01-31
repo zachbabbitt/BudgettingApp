@@ -15,7 +15,7 @@
         android:theme="@style/Theme.BudgettingTogether"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name=".auth.LoginActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.BudgettingTogether">
@@ -24,6 +24,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".auth.RegisterActivity"
+            android:exported="false"
+            android:label="@string/register"
+            android:theme="@style/Theme.BudgettingTogether" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.BudgettingTogether" />
         <activity
             android:name=".expenses.ExpensesActivity"
             android:exported="false"
