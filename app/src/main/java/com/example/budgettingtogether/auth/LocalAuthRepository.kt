@@ -6,7 +6,7 @@ import kotlinx.coroutines.withContext
 
 class LocalAuthRepository(private val userDao: UserDao) : AuthRepository {
 
-    override suspend fun register(email: String, username: String, password: String): AuthResult {
+    override suspend fun register(email: String, username: String, firstName: String, lastName: String, password: String): AuthResult {
         return withContext(Dispatchers.IO) {
             try {
                 if (userDao.countByEmail(email) > 0) {
@@ -18,6 +18,8 @@ class LocalAuthRepository(private val userDao: UserDao) : AuthRepository {
 
                 val passwordHash = BCrypt.withDefaults().hashToString(10, password.toCharArray())
                 val user = User(
+                    firstName = firstName,
+                    lastName = lastName,
                     username = username,
                     email = email,
                     passwordHash = passwordHash

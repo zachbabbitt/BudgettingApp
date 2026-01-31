@@ -15,6 +15,8 @@ import java.util.UUID
 data class User(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
+    val firstName: String,
+    val lastName: String,
     val username: String,
     val email: String,
     val passwordHash: String,

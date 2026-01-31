@@ -129,6 +129,8 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS users (
                         id TEXT NOT NULL PRIMARY KEY,
+                        firstName TEXT NOT NULL,
+                        lastName TEXT NOT NULL,
                         username TEXT NOT NULL,
                         email TEXT NOT NULL,
                         passwordHash TEXT NOT NULL,

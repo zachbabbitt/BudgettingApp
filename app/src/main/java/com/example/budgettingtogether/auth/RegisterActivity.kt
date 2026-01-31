@@ -20,6 +20,10 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var sessionManager: SessionManager
     private lateinit var authRepository: AuthRepository
 
+    private lateinit var firstNameLayout: TextInputLayout
+    private lateinit var firstNameInput: TextInputEditText
+    private lateinit var lastNameLayout: TextInputLayout
+    private lateinit var lastNameInput: TextInputEditText
     private lateinit var emailLayout: TextInputLayout
     private lateinit var emailInput: TextInputEditText
     private lateinit var usernameLayout: TextInputLayout
@@ -37,6 +41,10 @@ class RegisterActivity : AppCompatActivity() {
         authRepository = LocalAuthRepository(database.userDao())
         sessionManager = SessionManager(this)
 
+        firstNameLayout = findViewById(R.id.firstNameLayout)
+        firstNameInput = findViewById(R.id.firstNameInput)
+        lastNameLayout = findViewById(R.id.lastNameLayout)
+        lastNameInput = findViewById(R.id.lastNameInput)
         emailLayout = findViewById(R.id.emailLayout)
         emailInput = findViewById(R.id.emailInput)
         usernameLayout = findViewById(R.id.usernameLayout)
@@ -54,15 +62,27 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun attemptRegister() {
+        firstNameLayout.error = null
+        lastNameLayout.error = null
         emailLayout.error = null
         usernameLayout.error = null
         passwordLayout.error = null
         errorText.visibility = View.GONE
 
+        val firstName = firstNameInput.text.toString().trim()
+        val lastName = lastNameInput.text.toString().trim()
         val email = emailInput.text.toString().trim()
         val username = usernameInput.text.toString().trim()
         val password = passwordInput.text.toString()
 
+        if (firstName.isEmpty()) {
+            firstNameLayout.error = getString(R.string.error_first_name_required)
+            return
+        }
+        if (lastName.isEmpty()) {
+            lastNameLayout.error = getString(R.string.error_last_name_required)
+            return
+        }
         if (email.isEmpty()) {
             emailLayout.error = getString(R.string.error_email_required)
             return
@@ -91,7 +111,7 @@ class RegisterActivity : AppCompatActivity() {
         registerButton.isEnabled = false
 
         lifecycleScope.launch {
-            when (val result = authRepository.register(email, username, password)) {
+            when (val result = authRepository.register(email, username, firstName, lastName, password)) {
                 is AuthResult.Success -> {
                     sessionManager.saveSession(result.user.id)
                     val intent = Intent(this@RegisterActivity, MainActivity::class.java)
