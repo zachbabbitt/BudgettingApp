@@ -106,4 +106,21 @@
     <string name="no_expenses_for_day">No expenses for this day</string>
     <string name="day_total">Total: %1$s</string>
 
+    <!-- Auth -->
+    <string name="login">Log In</string>
+    <string name="register">Register</string>
+    <string name="email">Email</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="no_account">Don\'t have an account? Register</string>
+    <string name="have_account">Already have an account? Log in</string>
+    <string name="error_email_required">Email is required</string>
+    <string name="error_email_invalid">Please enter a valid email</string>
+    <string name="error_username_required">Username is required</string>
+    <string name="error_username_too_short">Username must be at least 3 characters</string>
+    <string name="error_password_required">Password is required</string>
+    <string name="error_password_too_short">Password must be at least 6 characters</string>
+    <string name="logout">Logout</string>
+    <string name="logged_in_as">Logged in as %1$s</string>
+
 </resources>

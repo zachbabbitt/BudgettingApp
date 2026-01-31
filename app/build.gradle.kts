@@ -56,6 +56,9 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
+    // BCrypt for password hashing
+    implementation("at.favre.lib:bcrypt:0.10.2")
+
     // MPAndroidChart
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 

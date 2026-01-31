@@ -24,4 +24,11 @@
             android:title="@string/export_csv" />
     </group>
 
+    <group android:checkableBehavior="none">
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@android:drawable/ic_lock_power_off"
+            android:title="@string/logout" />
+    </group>
+
 </menu>

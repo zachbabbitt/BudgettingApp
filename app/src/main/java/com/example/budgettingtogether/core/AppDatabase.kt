@@ -17,6 +17,8 @@ import com.example.budgettingtogether.util.UserPreferences
 import com.example.budgettingtogether.util.UserPreferencesDao
 import com.example.budgettingtogether.currency.ExchangeRate
 import com.example.budgettingtogether.currency.ExchangeRateDao
+import com.example.budgettingtogether.auth.User
+import com.example.budgettingtogether.auth.UserDao
 import com.example.budgettingtogether.expenses.Expense
 import com.example.budgettingtogether.expenses.ExpenseDao
 import com.example.budgettingtogether.income.Income
@@ -33,9 +35,10 @@ import java.util.Date
         BudgetLimit::class,
         Category::class,
         UserPreferences::class,
-        ExchangeRate::class
+        ExchangeRate::class,
+        User::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -46,6 +49,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun userPreferencesDao(): UserPreferencesDao
     abstract fun exchangeRateDao(): ExchangeRateDao
+    abstract fun userDao(): UserDao
 
     companion object {
         @Volatile
@@ -120,6 +124,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        username TEXT NOT NULL,
+                        email TEXT NOT NULL,
+                        passwordHash TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_users_email ON users (email)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_users_username ON users (username)")
+            }
+        }
+
         private val DEFAULT_CATEGORIES = listOf(
             Category("Food & Dining", true),
             Category("Transportation", true),
@@ -137,7 +157,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "budget_database"
                 )
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

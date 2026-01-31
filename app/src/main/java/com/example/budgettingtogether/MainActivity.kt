@@ -3,6 +3,7 @@ package com.example.budgettingtogether
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
@@ -11,6 +12,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.budgettingtogether.auth.LocalAuthRepository
+import com.example.budgettingtogether.auth.LoginActivity
+import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.categories.CategoriesActivity
 import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.currency.CurrencySettingsActivity
@@ -36,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var expenseDao: ExpenseDao
     private lateinit var incomeDao: IncomeDao
     private lateinit var userPreferencesDao: UserPreferencesDao
+    private lateinit var sessionManager: SessionManager
 
     private var pendingCsvContent: String? = null
 
@@ -62,10 +67,12 @@ class MainActivity : AppCompatActivity() {
         expenseDao = database.expenseDao()
         incomeDao = database.incomeDao()
         userPreferencesDao = database.userPreferencesDao()
+        sessionManager = SessionManager(this)
 
         setupToolbar()
         setupNavigationDrawer()
         setupViewPager()
+        displayUsername(database)
     }
 
     override fun onResume() {
@@ -111,6 +118,13 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_export_csv -> {
                     exportToCsv()
                 }
+                R.id.nav_logout -> {
+                    sessionManager.clearSession()
+                    val intent = Intent(this, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    finish()
+                }
             }
             binding.drawerLayout.closeDrawer(GravityCompat.START)
             true
@@ -124,6 +138,19 @@ class MainActivity : AppCompatActivity() {
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             tab.text = getString(tabTitles[position])
         }.attach()
+    }
+
+    private fun displayUsername(database: AppDatabase) {
+        val userId = sessionManager.getUserId() ?: return
+        val authRepository = LocalAuthRepository(database.userDao())
+        lifecycleScope.launch {
+            val user = authRepository.getCurrentUser(userId)
+            user?.let {
+                val headerView = binding.navigationView.getHeaderView(0)
+                val usernameText = headerView.findViewById<TextView>(R.id.usernameText)
+                usernameText.text = getString(R.string.logged_in_as, it.username)
+            }
+        }
     }
 
     private fun exportToCsv() {
