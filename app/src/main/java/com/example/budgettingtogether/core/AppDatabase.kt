@@ -38,7 +38,7 @@ import java.util.Date
         ExchangeRate::class,
         User::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -176,6 +176,24 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Recreate budget_limits with composite primary key (category, userGuid)
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS budget_limits_new (
+                        category TEXT NOT NULL,
+                        limitAmount REAL NOT NULL,
+                        currencyCode TEXT NOT NULL DEFAULT 'USD',
+                        userGuid TEXT NOT NULL DEFAULT '',
+                        PRIMARY KEY (category, userGuid)
+                    )
+                """.trimIndent())
+                db.execSQL("INSERT INTO budget_limits_new (category, limitAmount, currencyCode, userGuid) SELECT category, limitAmount, currencyCode, userGuid FROM budget_limits")
+                db.execSQL("DROP TABLE budget_limits")
+                db.execSQL("ALTER TABLE budget_limits_new RENAME TO budget_limits")
+            }
+        }
+
         private val DEFAULT_CATEGORIES = listOf(
             Category("Food & Dining", true),
             Category("Transportation", true),
@@ -193,7 +211,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "budget_database"
                 )
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
