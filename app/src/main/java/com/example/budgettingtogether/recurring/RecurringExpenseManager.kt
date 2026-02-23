@@ -9,14 +9,15 @@ import java.util.Date
 
 class RecurringExpenseManager(
     private val expenseDao: ExpenseDao,
-    private val userPreferencesDao: UserPreferencesDao
+    private val userPreferencesDao: UserPreferencesDao,
+    private val userGuid: String
 ) {
     suspend fun generateMonthlyRecurringExpensesIfNeeded() {
         val calendar = Calendar.getInstance()
         val currentMonth = calendar.get(Calendar.MONTH)
         val currentYear = calendar.get(Calendar.YEAR)
 
-        val preferences = userPreferencesDao.getPreferencesOnce() ?: return
+        val preferences = userPreferencesDao.getPreferencesOnce(userGuid) ?: return
 
         // Check if we already generated for this month
         if (preferences.lastRecurringGenerationMonth == currentMonth &&
@@ -25,7 +26,7 @@ class RecurringExpenseManager(
         }
 
         // Get monthly recurring templates
-        val monthlyTemplates = expenseDao.getMonthlyRecurringExpensesOnce()
+        val monthlyTemplates = expenseDao.getMonthlyRecurringExpensesOnce(userGuid)
 
         // Calculate month boundaries for duplicate checking
         val monthStart = Calendar.getInstance().apply {
@@ -51,6 +52,7 @@ class RecurringExpenseManager(
         // Create new expenses from templates (only if not already created this month)
         for (template in monthlyTemplates) {
             val existingCount = expenseDao.countMatchingExpensesInMonth(
+                userGuid = userGuid,
                 title = template.title,
                 category = template.category,
                 recurringType = RecurringType.MONTHLY.name,
@@ -68,13 +70,14 @@ class RecurringExpenseManager(
                     date = Date(),
                     recurringType = RecurringType.MONTHLY,
                     originalAmount = template.originalAmount,
-                    originalCurrency = template.originalCurrency
+                    originalCurrency = template.originalCurrency,
+                    userGuid = template.userGuid
                 )
                 expenseDao.insert(newExpense)
             }
         }
 
         // Update tracking in preferences
-        userPreferencesDao.updateLastRecurringGeneration(currentMonth, currentYear)
+        userPreferencesDao.updateLastRecurringGeneration(userGuid, currentMonth, currentYear)
     }
 }

@@ -25,6 +25,7 @@ class AddExpenseDialogHelper(
     private val currencyRepository: CurrencyRepository,
     private val defaultCurrencyExpenses: String,
     private val defaultCurrencyTracking: String,
+    private val userGuid: String,
     private val onExpenseSaved: suspend (Expense) -> Unit
 ) {
     private val currencyCodes = CurrencyData.currencies.keys.sorted()
@@ -163,14 +164,16 @@ class AddExpenseDialogHelper(
                     category = category,
                     recurringType = recurringType,
                     originalAmount = enteredAmount,
-                    originalCurrency = entryCurrency
+                    originalCurrency = entryCurrency,
+                    userGuid = userGuid
                 )
             } else {
                 Expense(
                     title = title,
                     amount = enteredAmount,
                     category = category,
-                    recurringType = recurringType
+                    recurringType = recurringType,
+                    userGuid = userGuid
                 )
             }
             currencyRepository.addRecentCurrency(entryCurrency)

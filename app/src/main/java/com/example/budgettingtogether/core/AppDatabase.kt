@@ -38,7 +38,7 @@ import java.util.Date
         ExchangeRate::class,
         User::class
     ],
-    version = 9,
+    version = 11,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -142,6 +142,40 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add userGuid to the users table and backfill with a generated UUID per user
+                db.execSQL("ALTER TABLE users ADD COLUMN userGuid TEXT NOT NULL DEFAULT ''")
+                db.execSQL("UPDATE users SET userGuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE userGuid = ''")
+
+                // Add userGuid to all data tables
+                db.execSQL("ALTER TABLE expenses ADD COLUMN userGuid TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE income ADD COLUMN userGuid TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE budget_limits ADD COLUMN userGuid TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE categories ADD COLUMN userGuid TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE user_preferences ADD COLUMN userGuid TEXT NOT NULL DEFAULT ''")
+
+                // Associate existing data with the existing user's userGuid
+                db.execSQL("UPDATE expenses SET userGuid = (SELECT userGuid FROM users LIMIT 1) WHERE userGuid = ''")
+                db.execSQL("UPDATE income SET userGuid = (SELECT userGuid FROM users LIMIT 1) WHERE userGuid = ''")
+                db.execSQL("UPDATE budget_limits SET userGuid = (SELECT userGuid FROM users LIMIT 1) WHERE userGuid = ''")
+                db.execSQL("UPDATE user_preferences SET userGuid = (SELECT userGuid FROM users LIMIT 1) WHERE userGuid = ''")
+            }
+        }
+
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Handle databases that ran an intermediate v10 migration
+                // that didn't add userGuid to the users table
+                try {
+                    db.execSQL("ALTER TABLE users ADD COLUMN userGuid TEXT NOT NULL DEFAULT ''")
+                    db.execSQL("UPDATE users SET userGuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE userGuid = ''")
+                } catch (_: Exception) {
+                    // Column already exists from full MIGRATION_9_10; no action needed
+                }
+            }
+        }
+
         private val DEFAULT_CATEGORIES = listOf(
             Category("Food & Dining", true),
             Category("Transportation", true),
@@ -159,7 +193,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "budget_database"
                 )
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

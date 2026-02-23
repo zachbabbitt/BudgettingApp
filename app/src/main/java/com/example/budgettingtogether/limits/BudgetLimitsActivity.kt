@@ -10,6 +10,7 @@ import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.currency.CurrencyData
 import com.example.budgettingtogether.currency.CurrencyRepository
 import com.example.budgettingtogether.databinding.ActivityBudgetLimitsBinding
+import com.example.budgettingtogether.auth.SessionManager
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -20,6 +21,8 @@ class BudgetLimitsActivity : AppCompatActivity() {
     private lateinit var budgetLimitDao: BudgetLimitDao
     private lateinit var categoryDao: CategoryDao
     private lateinit var currencyRepository: CurrencyRepository
+    private lateinit var sessionManager: SessionManager
+    private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
     private var adapter: BudgetLimitAdapter? = null
     private var currentCurrencyCode: String = "USD"
 
@@ -31,7 +34,8 @@ class BudgetLimitsActivity : AppCompatActivity() {
         val database = AppDatabase.getDatabase(this)
         budgetLimitDao = database.budgetLimitDao()
         categoryDao = database.categoryDao()
-        currencyRepository = CurrencyRepository(this)
+        sessionManager = SessionManager(this)
+        currencyRepository = CurrencyRepository(this, userGuid)
 
         setupToolbar()
         setupRecyclerView()
@@ -52,8 +56,8 @@ class BudgetLimitsActivity : AppCompatActivity() {
     private fun observeData() {
         lifecycleScope.launch {
             combine(
-                categoryDao.getAllCategoryNames(),
-                budgetLimitDao.getAllLimits(),
+                categoryDao.getAllCategoryNames(userGuid),
+                budgetLimitDao.getAllLimits(userGuid),
                 currencyRepository.observeDefaultCurrencyTracking()
             ) { categories, limits, trackingCurrency ->
                 Triple(categories, limits, trackingCurrency)
@@ -81,9 +85,9 @@ class BudgetLimitsActivity : AppCompatActivity() {
     private fun saveLimitDebounced(category: String, limit: Double?) {
         lifecycleScope.launch {
             if (limit != null && limit > 0) {
-                budgetLimitDao.insertOrUpdate(BudgetLimit(category, limit, currentCurrencyCode))
+                budgetLimitDao.insertOrUpdate(BudgetLimit(category, limit, currentCurrencyCode, userGuid = userGuid))
             } else {
-                budgetLimitDao.delete(category)
+                budgetLimitDao.delete(userGuid, category)
             }
         }
     }

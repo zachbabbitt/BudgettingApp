@@ -8,5 +8,6 @@ data class BudgetLimit(
     @PrimaryKey
     val category: String,
     val limitAmount: Double,
-    val currencyCode: String = "USD"
+    val currencyCode: String = "USD",
+    val userGuid: String = ""
 )

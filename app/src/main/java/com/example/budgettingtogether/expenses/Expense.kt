@@ -16,5 +16,6 @@ data class Expense(
     val date: Date = Date(),
     val recurringType: RecurringType = RecurringType.NONE,
     val originalAmount: Double? = null,
-    val originalCurrency: String? = null
+    val originalCurrency: String? = null,
+    val userGuid: String = ""
 )

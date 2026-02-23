@@ -21,6 +21,7 @@ import com.example.budgettingtogether.income.IncomeDao
 import com.example.budgettingtogether.limits.BudgetLimit
 import com.example.budgettingtogether.limits.BudgetLimitDao
 import com.example.budgettingtogether.limits.BudgetLimitsActivity
+import com.example.budgettingtogether.auth.SessionManager
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -36,6 +37,8 @@ class HomeFragment : Fragment() {
     private lateinit var budgetLimitDao: BudgetLimitDao
     private lateinit var categoryDao: CategoryDao
     private lateinit var currencyRepository: CurrencyRepository
+    private lateinit var sessionManager: SessionManager
+    private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
     private var currencySymbol: String = "$"
 
     private var categories: List<String> = emptyList()
@@ -64,7 +67,8 @@ class HomeFragment : Fragment() {
         incomeDao = database.incomeDao()
         budgetLimitDao = database.budgetLimitDao()
         categoryDao = database.categoryDao()
-        currencyRepository = CurrencyRepository(requireContext())
+        sessionManager = SessionManager(requireContext())
+        currencyRepository = CurrencyRepository(requireContext(), userGuid)
 
         setupButtons()
         setupFab()
@@ -96,7 +100,7 @@ class HomeFragment : Fragment() {
 
     private fun observeCategories() {
         viewLifecycleOwner.lifecycleScope.launch {
-            categoryDao.getAllCategoryNames().collectLatest { categoryList ->
+            categoryDao.getAllCategoryNames(userGuid).collectLatest { categoryList ->
                 categories = categoryList
             }
         }
@@ -117,7 +121,8 @@ class HomeFragment : Fragment() {
             categories = categories,
             currencyRepository = currencyRepository,
             defaultCurrencyExpenses = defaultCurrencyExpenses,
-            defaultCurrencyTracking = defaultCurrencyTracking
+            defaultCurrencyTracking = defaultCurrencyTracking,
+            userGuid = userGuid
         ) { expense ->
             expenseDao.insert(expense)
         }.show()
@@ -126,9 +131,9 @@ class HomeFragment : Fragment() {
     private fun observeData() {
         viewLifecycleOwner.lifecycleScope.launch {
             combine(
-                expenseDao.getAllExpenses(),
-                budgetLimitDao.getAllLimits(),
-                incomeDao.getAllIncome(),
+                expenseDao.getAllExpenses(userGuid),
+                budgetLimitDao.getAllLimits(userGuid),
+                incomeDao.getAllIncome(userGuid),
                 currencyRepository.observeDefaultCurrencyTracking()
             ) { expenses, limits, income, trackingCurrency ->
                 defaultCurrencyTracking = trackingCurrency

@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.budgettingtogether.R
+import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.databinding.ActivityCurrencySettingsBinding
 import kotlinx.coroutines.launch
@@ -17,6 +18,8 @@ class CurrencySettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityCurrencySettingsBinding
     private lateinit var currencyRepository: CurrencyRepository
+    private lateinit var sessionManager: SessionManager
+    private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
 
     private val currencyCodes = CurrencyData.currencies.keys.sorted()
     private val currencyDisplayNames = currencyCodes.map { CurrencyData.getDisplayName(it) }
@@ -26,7 +29,8 @@ class CurrencySettingsActivity : AppCompatActivity() {
         binding = ActivityCurrencySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        currencyRepository = CurrencyRepository(this)
+        sessionManager = SessionManager(this)
+        currencyRepository = CurrencyRepository(this, userGuid)
 
         setupToolbar()
         setupDefaultCurrencySpinner()

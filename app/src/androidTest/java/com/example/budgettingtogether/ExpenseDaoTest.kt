@@ -48,7 +48,7 @@ class ExpenseDaoTest {
 
         expenseDao.insert(expense)
 
-        val expenses = expenseDao.getAllExpenses().first()
+        val expenses = expenseDao.getAllExpenses("").first()
         assertEquals(1, expenses.size)
         assertEquals("Groceries", expenses[0].title)
         assertEquals(50.0, expenses[0].amount, 0.01)
@@ -64,7 +64,7 @@ class ExpenseDaoTest {
         expenseDao.insert(expense2)
         expenseDao.insert(expense3)
 
-        val expenses = expenseDao.getAllExpenses().first()
+        val expenses = expenseDao.getAllExpenses("").first()
         assertEquals(3, expenses.size)
     }
 
@@ -73,11 +73,11 @@ class ExpenseDaoTest {
         val expense = Expense(title = "Groceries", amount = 50.0, category = "Food")
 
         expenseDao.insert(expense)
-        var expenses = expenseDao.getAllExpenses().first()
+        var expenses = expenseDao.getAllExpenses("").first()
         assertEquals(1, expenses.size)
 
         expenseDao.delete(expense)
-        expenses = expenseDao.getAllExpenses().first()
+        expenses = expenseDao.getAllExpenses("").first()
         assertEquals(0, expenses.size)
     }
 
@@ -106,7 +106,7 @@ class ExpenseDaoTest {
         expenseDao.insert(weekly)
         expenseDao.insert(monthly)
 
-        val recurring = expenseDao.getRecurringExpenses().first()
+        val recurring = expenseDao.getRecurringExpenses("").first()
         assertEquals(2, recurring.size)
         assertTrue(recurring.none { it.recurringType == RecurringType.NONE })
     }
@@ -117,13 +117,13 @@ class ExpenseDaoTest {
         expenseDao.insert(Expense(title = "B", amount = 20.0, category = "Food"))
         expenseDao.insert(Expense(title = "C", amount = 30.0, category = "Food"))
 
-        val total = expenseDao.getTotalAmount().first()
+        val total = expenseDao.getTotalAmount("").first()
         assertEquals(60.0, total ?: 0.0, 0.01)
     }
 
     @Test
     fun getTotalAmount_emptyDatabase_returnsNull() = runTest {
-        val total = expenseDao.getTotalAmount().first()
+        val total = expenseDao.getTotalAmount("").first()
         assertNull(total)
     }
 
@@ -140,7 +140,7 @@ class ExpenseDaoTest {
         )
 
         expenseDao.insert(expense)
-        val retrieved = expenseDao.getAllExpenses().first()[0]
+        val retrieved = expenseDao.getAllExpenses("").first()[0]
 
         assertEquals("test-id-123", retrieved.id)
         assertEquals("Test Expense", retrieved.title)
@@ -176,7 +176,7 @@ class ExpenseDaoTest {
             )
         )
 
-        val weeklyExpenses = expenseDao.getExpensesByRecurringType(RecurringType.WEEKLY.name).first()
+        val weeklyExpenses = expenseDao.getExpensesByRecurringType("", RecurringType.WEEKLY.name).first()
         assertEquals(2, weeklyExpenses.size)
         assertTrue(weeklyExpenses.all { it.recurringType == RecurringType.WEEKLY })
     }

@@ -113,7 +113,7 @@ class RegisterActivity : AppCompatActivity() {
         lifecycleScope.launch {
             when (val result = authRepository.register(email, username, firstName, lastName, password)) {
                 is AuthResult.Success -> {
-                    sessionManager.saveSession(result.user.id)
+                    sessionManager.saveSession(result.user.id, result.user.userGuid)
                     val intent = Intent(this@RegisterActivity, MainActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)

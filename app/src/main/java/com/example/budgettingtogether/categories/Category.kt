@@ -7,5 +7,6 @@ import androidx.room.PrimaryKey
 data class Category(
     @PrimaryKey
     val name: String,
-    val isDefault: Boolean = false
+    val isDefault: Boolean = false,
+    val userGuid: String = ""
 )

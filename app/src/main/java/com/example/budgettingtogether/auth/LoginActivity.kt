@@ -82,7 +82,7 @@ class LoginActivity : AppCompatActivity() {
         lifecycleScope.launch {
             when (val result = authRepository.login(email, password)) {
                 is AuthResult.Success -> {
-                    sessionManager.saveSession(result.user.id)
+                    sessionManager.saveSession(result.user.id, result.user.userGuid)
                     navigateToMain()
                 }
                 is AuthResult.Error -> {

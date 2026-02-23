@@ -14,6 +14,7 @@ import com.example.budgettingtogether.R
 import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.databinding.ActivityExpensesBinding
 import com.example.budgettingtogether.databinding.DialogAddExpenseBinding
+import com.example.budgettingtogether.auth.SessionManager
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -23,6 +24,8 @@ class ExpensesActivity : AppCompatActivity() {
     private lateinit var expenseAdapter: ExpenseAdapter
     private lateinit var expenseDao: ExpenseDao
     private lateinit var categoryDao: CategoryDao
+    private lateinit var sessionManager: SessionManager
+    private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
 
     private var categories: List<String> = emptyList()
 
@@ -42,6 +45,7 @@ class ExpensesActivity : AppCompatActivity() {
         val database = AppDatabase.Companion.getDatabase(this)
         expenseDao = database.expenseDao()
         categoryDao = database.categoryDao()
+        sessionManager = SessionManager(this)
 
         setupToolbar()
         setupRecyclerView()
@@ -52,7 +56,7 @@ class ExpensesActivity : AppCompatActivity() {
 
     private fun observeCategories() {
         lifecycleScope.launch {
-            categoryDao.getAllCategoryNames().collectLatest { categoryList ->
+            categoryDao.getAllCategoryNames(userGuid).collectLatest { categoryList ->
                 categories = categoryList
             }
         }
@@ -83,7 +87,7 @@ class ExpensesActivity : AppCompatActivity() {
 
     private fun observeExpenses() {
         lifecycleScope.launch {
-            expenseDao.getAllExpenses().collectLatest { expenses ->
+            expenseDao.getAllExpenses(userGuid).collectLatest { expenses ->
                 expenseAdapter.updateList(expenses)
                 updateTotalDisplay(expenses)
             }
@@ -126,7 +130,7 @@ class ExpensesActivity : AppCompatActivity() {
                     else -> RecurringType.NONE
                 }
 
-                addExpense(Expense(title = title, amount = amount, category = category, recurringType = recurringType))
+                addExpense(Expense(title = title, amount = amount, category = category, recurringType = recurringType, userGuid = userGuid))
             }
             .setNegativeButton(R.string.cancel, null)
             .show()

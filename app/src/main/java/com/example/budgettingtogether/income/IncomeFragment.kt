@@ -18,6 +18,7 @@ import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.currency.CurrencyData
 import com.example.budgettingtogether.currency.CurrencyDropdownAdapter
 import com.example.budgettingtogether.currency.CurrencyRepository
+import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.databinding.FragmentIncomeBinding
 import com.example.budgettingtogether.databinding.DialogAddIncomeBinding
 import kotlinx.coroutines.flow.collectLatest
@@ -31,6 +32,8 @@ class IncomeFragment : Fragment() {
     private lateinit var incomeAdapter: IncomeAdapter
     private lateinit var incomeDao: IncomeDao
     private lateinit var currencyRepository: CurrencyRepository
+    private lateinit var sessionManager: SessionManager
+    private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
 
     private var defaultCurrency: String = "USD"
     private val currencyCodes = CurrencyData.currencies.keys.sorted()
@@ -67,7 +70,8 @@ class IncomeFragment : Fragment() {
 
         val database = AppDatabase.Companion.getDatabase(requireContext())
         incomeDao = database.incomeDao()
-        currencyRepository = CurrencyRepository(requireContext())
+        sessionManager = SessionManager(requireContext())
+        currencyRepository = CurrencyRepository(requireContext(), userGuid)
 
         setupRecyclerView()
         setupFab()
@@ -106,7 +110,7 @@ class IncomeFragment : Fragment() {
 
     private fun observeIncome() {
         viewLifecycleOwner.lifecycleScope.launch {
-            incomeDao.getAllIncome().collectLatest { incomeList ->
+            incomeDao.getAllIncome(userGuid).collectLatest { incomeList ->
                 incomeAdapter.updateList(incomeList)
                 updateTotalDisplay(incomeList)
             }
@@ -196,14 +200,16 @@ class IncomeFragment : Fragment() {
                             source = source,
                             recurringType = recurringType,
                             originalAmount = enteredAmount,
-                            originalCurrency = entryCurrency
+                            originalCurrency = entryCurrency,
+                            userGuid = userGuid
                         )
                     } else {
                         Income(
                             title = title,
                             amount = enteredAmount,
                             source = source,
-                            recurringType = recurringType
+                            recurringType = recurringType,
+                            userGuid = userGuid
                         )
                     }
                     currencyRepository.addRecentCurrency(entryCurrency)

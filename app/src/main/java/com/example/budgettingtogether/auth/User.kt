@@ -20,5 +20,6 @@ data class User(
     val username: String,
     val email: String,
     val passwordHash: String,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val userGuid: String = UUID.randomUUID().toString()
 )
