@@ -16,6 +16,7 @@ import com.example.budgettingtogether.databinding.FragmentCalendarBinding
 import com.example.budgettingtogether.databinding.ItemCalendarDayBinding
 import com.example.budgettingtogether.databinding.ItemCalendarExpenseBinding
 import com.example.budgettingtogether.expenses.Expense
+import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.expenses.ExpenseDao
 import kotlinx.coroutines.flow.combine
@@ -34,7 +35,9 @@ class CalendarFragment : Fragment() {
     private lateinit var expenseDao: ExpenseDao
     private lateinit var currencyRepository: CurrencyRepository
     private lateinit var sessionManager: SessionManager
+    private lateinit var pairingRepository: PairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
+    private var pairedGuids: List<String> = emptyList()
     private var currencySymbol: String = "$"
 
     private val displayedMonth = Calendar.getInstance()
@@ -64,12 +67,13 @@ class CalendarFragment : Fragment() {
         val database = AppDatabase.getDatabase(requireContext())
         expenseDao = database.expenseDao()
         sessionManager = SessionManager(requireContext())
+        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
         currencyRepository = CurrencyRepository(requireContext(), userGuid)
 
         setupNavigation()
         buildCalendarGrid()
         updateCalendar()
-        observeData()
+        loadPairedGuidsAndObserve()
     }
 
     private fun setupNavigation() {
@@ -207,10 +211,18 @@ class CalendarFragment : Fragment() {
             cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
     }
 
+    private fun loadPairedGuidsAndObserve() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val userId = sessionManager.getUserId() ?: return@launch
+            pairedGuids = pairingRepository.getPairedUserGuids(userId, userGuid)
+            observeData()
+        }
+    }
+
     private fun observeData() {
         viewLifecycleOwner.lifecycleScope.launch {
             combine(
-                expenseDao.getAllExpenses(userGuid),
+                expenseDao.getAllExpenses(pairedGuids),
                 currencyRepository.observeDefaultCurrencyTracking()
             ) { expenses, trackingCurrency ->
                 currencySymbol = CurrencyData.getSymbol(trackingCurrency)

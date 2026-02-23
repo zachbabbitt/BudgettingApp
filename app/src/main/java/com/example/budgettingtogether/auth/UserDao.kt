@@ -23,4 +23,10 @@ interface UserDao {
 
     @Query("SELECT COUNT(*) FROM users WHERE username = :username")
     suspend fun countByUsername(username: String): Int
+
+    @Query("SELECT * FROM users WHERE (username LIKE '%' || :query || '%' OR email LIKE '%' || :query || '%') AND id != :excludeUserId")
+    suspend fun searchUsers(query: String, excludeUserId: String): List<User>
+
+    @Query("SELECT * FROM users WHERE id IN (:userIds)")
+    suspend fun getUsersByIds(userIds: List<String>): List<User>
 }

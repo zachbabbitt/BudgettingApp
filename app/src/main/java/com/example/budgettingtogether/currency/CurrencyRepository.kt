@@ -141,12 +141,13 @@ class CurrencyRepository(context: Context, private val userGuid: String = "") {
     suspend fun convertBudgetLimitsToNewCurrency(
         budgetLimitDao: BudgetLimitDao,
         fromCurrency: String,
-        toCurrency: String
+        toCurrency: String,
+        userGuids: List<String> = listOf(userGuid)
     ): Result<Unit> {
         if (fromCurrency == toCurrency) return Result.success(Unit)
 
         return try {
-            val limits = budgetLimitDao.getAllLimitsOnce(userGuid)
+            val limits = budgetLimitDao.getAllLimitsOnce(userGuids)
 
             val convertedLimits = limits.map { limit ->
                 val convertedAmount = convert(limit.limitAmount, fromCurrency, toCurrency)

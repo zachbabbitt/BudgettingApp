@@ -31,4 +31,22 @@ interface ExpenseDao {
 
     @Query("SELECT COUNT(*) FROM expenses WHERE userGuid = :userGuid AND title = :title AND category = :category AND recurringType = :recurringType AND date >= :monthStart AND date < :monthEnd")
     suspend fun countMatchingExpensesInMonth(userGuid: String, title: String, category: String, recurringType: String, monthStart: Long, monthEnd: Long): Int
+
+    @Query("SELECT * FROM expenses WHERE userGuid IN (:userGuids) ORDER BY date DESC")
+    fun getAllExpenses(userGuids: List<String>): Flow<List<Expense>>
+
+    @Query("SELECT * FROM expenses WHERE userGuid IN (:userGuids) AND recurringType != 'NONE' ORDER BY date DESC")
+    fun getRecurringExpenses(userGuids: List<String>): Flow<List<Expense>>
+
+    @Query("SELECT SUM(amount) FROM expenses WHERE userGuid IN (:userGuids)")
+    fun getTotalAmount(userGuids: List<String>): Flow<Double?>
+
+    @Query("SELECT * FROM expenses WHERE userGuid IN (:userGuids) AND recurringType = :type ORDER BY date DESC")
+    fun getExpensesByRecurringType(userGuids: List<String>, type: String): Flow<List<Expense>>
+
+    @Query("SELECT * FROM expenses WHERE userGuid IN (:userGuids) AND recurringType = 'MONTHLY'")
+    suspend fun getMonthlyRecurringExpensesOnce(userGuids: List<String>): List<Expense>
+
+    @Query("SELECT COUNT(*) FROM expenses WHERE userGuid IN (:userGuids) AND title = :title AND category = :category AND recurringType = :recurringType AND date >= :monthStart AND date < :monthEnd")
+    suspend fun countMatchingExpensesInMonth(userGuids: List<String>, title: String, category: String, recurringType: String, monthStart: Long, monthEnd: Long): Int
 }

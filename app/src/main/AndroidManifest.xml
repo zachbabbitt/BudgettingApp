@@ -60,6 +60,11 @@
             android:label="@string/manage_categories"
             android:theme="@style/Theme.BudgettingTogether" />
         <activity
+            android:name=".auth.PairingActivity"
+            android:exported="false"
+            android:label="@string/pairing_title"
+            android:theme="@style/Theme.BudgettingTogether" />
+        <activity
             android:name=".currency.CurrencySettingsActivity"
             android:exported="false"
             android:label="@string/currency_settings"
