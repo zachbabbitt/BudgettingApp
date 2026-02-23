@@ -18,7 +18,9 @@ import com.example.budgettingtogether.databinding.ItemCalendarExpenseBinding
 import com.example.budgettingtogether.expenses.Expense
 import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
-import com.example.budgettingtogether.expenses.ExpenseDao
+import com.example.budgettingtogether.storage.AppDataSource
+import com.example.budgettingtogether.storage.StoragePreferenceManager
+import com.example.budgettingtogether.storage.source.IExpenseSource
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -32,7 +34,8 @@ class CalendarFragment : Fragment() {
     private var _binding: FragmentCalendarBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var expenseDao: ExpenseDao
+    private lateinit var appDataSource: AppDataSource
+    private val expenseSource: IExpenseSource get() = appDataSource.expenseSource
     private lateinit var currencyRepository: CurrencyRepository
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
@@ -65,10 +68,10 @@ class CalendarFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val database = AppDatabase.getDatabase(requireContext())
-        expenseDao = database.expenseDao()
         sessionManager = SessionManager(requireContext())
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
         currencyRepository = CurrencyRepository(requireContext(), userGuid)
+        appDataSource = AppDataSource(database, StoragePreferenceManager(requireContext()))
 
         setupNavigation()
         buildCalendarGrid()
@@ -222,7 +225,7 @@ class CalendarFragment : Fragment() {
     private fun observeData() {
         viewLifecycleOwner.lifecycleScope.launch {
             combine(
-                expenseDao.getAllExpenses(pairedGuids),
+                expenseSource.getAllExpenses(pairedGuids),
                 currencyRepository.observeDefaultCurrencyTracking()
             ) { expenses, trackingCurrency ->
                 currencySymbol = CurrencyData.getSymbol(trackingCurrency)

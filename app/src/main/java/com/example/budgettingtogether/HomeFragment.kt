@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.example.budgettingtogether.categories.CategoryDao
 import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.currency.CurrencyData
 import com.example.budgettingtogether.currency.CurrencyRepository
@@ -15,14 +14,17 @@ import com.example.budgettingtogether.databinding.FragmentHomeBinding
 import com.example.budgettingtogether.databinding.ItemBudgetProgressBinding
 import com.example.budgettingtogether.expenses.AddExpenseDialogHelper
 import com.example.budgettingtogether.expenses.Expense
-import com.example.budgettingtogether.expenses.ExpenseDao
 import com.example.budgettingtogether.income.Income
-import com.example.budgettingtogether.income.IncomeDao
 import com.example.budgettingtogether.limits.BudgetLimit
-import com.example.budgettingtogether.limits.BudgetLimitDao
 import com.example.budgettingtogether.limits.BudgetLimitsActivity
 import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
+import com.example.budgettingtogether.storage.AppDataSource
+import com.example.budgettingtogether.storage.StoragePreferenceManager
+import com.example.budgettingtogether.storage.source.IBudgetLimitSource
+import com.example.budgettingtogether.storage.source.ICategorySource
+import com.example.budgettingtogether.storage.source.IExpenseSource
+import com.example.budgettingtogether.storage.source.IIncomeSource
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -33,10 +35,11 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var expenseDao: ExpenseDao
-    private lateinit var incomeDao: IncomeDao
-    private lateinit var budgetLimitDao: BudgetLimitDao
-    private lateinit var categoryDao: CategoryDao
+    private lateinit var appDataSource: AppDataSource
+    private val expenseSource: IExpenseSource get() = appDataSource.expenseSource
+    private val incomeSource: IIncomeSource get() = appDataSource.incomeSource
+    private val budgetLimitSource: IBudgetLimitSource get() = appDataSource.budgetLimitSource
+    private val categorySource: ICategorySource get() = appDataSource.categorySource
     private lateinit var currencyRepository: CurrencyRepository
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
@@ -66,13 +69,10 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val database = AppDatabase.getDatabase(requireContext())
-        expenseDao = database.expenseDao()
-        incomeDao = database.incomeDao()
-        budgetLimitDao = database.budgetLimitDao()
-        categoryDao = database.categoryDao()
         sessionManager = SessionManager(requireContext())
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
         currencyRepository = CurrencyRepository(requireContext(), userGuid)
+        appDataSource = AppDataSource(database, StoragePreferenceManager(requireContext()))
 
         setupButtons()
         setupFab()
@@ -112,7 +112,7 @@ class HomeFragment : Fragment() {
 
     private fun observeCategories() {
         viewLifecycleOwner.lifecycleScope.launch {
-            categoryDao.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
+            categorySource.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
                 categories = categoryList
             }
         }
@@ -136,16 +136,17 @@ class HomeFragment : Fragment() {
             defaultCurrencyTracking = defaultCurrencyTracking,
             userGuid = userGuid
         ) { expense ->
-            expenseDao.insert(expense)
+            expenseSource.insert(expense)
+            observeData()
         }.show()
     }
 
     private fun observeData() {
         viewLifecycleOwner.lifecycleScope.launch {
             combine(
-                expenseDao.getAllExpenses(pairedGuids),
-                budgetLimitDao.getAllLimits(pairedGuids),
-                incomeDao.getAllIncome(pairedGuids),
+                expenseSource.getAllExpenses(pairedGuids),
+                budgetLimitSource.getAllLimits(pairedGuids),
+                incomeSource.getAllIncome(pairedGuids),
                 currencyRepository.observeDefaultCurrencyTracking()
             ) { expenses, limits, income, trackingCurrency ->
                 defaultCurrencyTracking = trackingCurrency

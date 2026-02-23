@@ -10,13 +10,16 @@ import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.databinding.ActivityCategoriesBinding
+import com.example.budgettingtogether.storage.AppDataSource
+import com.example.budgettingtogether.storage.StoragePreferenceManager
+import com.example.budgettingtogether.storage.source.ICategorySource
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class CategoriesActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityCategoriesBinding
-    private lateinit var categoryDao: CategoryDao
+    private lateinit var categorySource: ICategorySource
     private lateinit var adapter: CategoryAdapter
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
@@ -29,9 +32,9 @@ class CategoriesActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val database = AppDatabase.getDatabase(this)
-        categoryDao = database.categoryDao()
         sessionManager = SessionManager(this)
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
+        categorySource = AppDataSource(database, StoragePreferenceManager(this)).categorySource
 
         setupToolbar()
         setupRecyclerView()
@@ -78,7 +81,7 @@ class CategoriesActivity : AppCompatActivity() {
 
     private fun observeCategories() {
         lifecycleScope.launch {
-            categoryDao.getAllCategories(pairedGuids).collectLatest { categories ->
+            categorySource.getAllCategories(pairedGuids).collectLatest { categories ->
                 adapter.updateList(categories)
             }
         }
@@ -86,13 +89,15 @@ class CategoriesActivity : AppCompatActivity() {
 
     private fun addCategory(name: String) {
         lifecycleScope.launch {
-            categoryDao.insert(Category(name, false, userGuid = userGuid))
+            categorySource.insert(Category(name, false, userGuid = userGuid))
+            observeCategories()
         }
     }
 
     private fun deleteCategory(category: Category) {
         lifecycleScope.launch {
-            categoryDao.delete(category)
+            categorySource.delete(category)
+            observeCategories()
         }
     }
 }

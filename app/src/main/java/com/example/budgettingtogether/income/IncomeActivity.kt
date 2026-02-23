@@ -10,6 +10,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.R
+import com.example.budgettingtogether.storage.AppDataSource
+import com.example.budgettingtogether.storage.StoragePreferenceManager
+import com.example.budgettingtogether.storage.source.IIncomeSource
 import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.databinding.ActivityIncomeBinding
 import com.example.budgettingtogether.databinding.DialogAddIncomeBinding
@@ -22,7 +25,7 @@ class IncomeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityIncomeBinding
     private lateinit var incomeAdapter: IncomeAdapter
-    private lateinit var incomeDao: IncomeDao
+    private lateinit var incomeSource: IIncomeSource
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
@@ -52,9 +55,9 @@ class IncomeActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val database = AppDatabase.Companion.getDatabase(this)
-        incomeDao = database.incomeDao()
         sessionManager = SessionManager(this)
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
+        incomeSource = AppDataSource(database, StoragePreferenceManager(this)).incomeSource
 
         setupToolbar()
         setupRecyclerView()
@@ -95,7 +98,7 @@ class IncomeActivity : AppCompatActivity() {
 
     private fun observeIncome() {
         lifecycleScope.launch {
-            incomeDao.getAllIncome(pairedGuids).collectLatest { incomeList ->
+            incomeSource.getAllIncome(pairedGuids).collectLatest { incomeList ->
                 incomeAdapter.updateList(incomeList)
                 updateTotalDisplay(incomeList)
             }
@@ -146,13 +149,15 @@ class IncomeActivity : AppCompatActivity() {
 
     private fun addIncome(income: Income) {
         lifecycleScope.launch {
-            incomeDao.insert(income)
+            incomeSource.insert(income)
+            observeIncome()
         }
     }
 
     private fun deleteIncome(income: Income) {
         lifecycleScope.launch {
-            incomeDao.delete(income)
+            incomeSource.delete(income)
+            observeIncome()
         }
     }
 

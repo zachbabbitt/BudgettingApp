@@ -8,11 +8,14 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.core.AppDatabase
-import com.example.budgettingtogether.categories.CategoryDao
 import com.example.budgettingtogether.currency.CurrencyRepository
 import com.example.budgettingtogether.R
 import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
+import com.example.budgettingtogether.storage.AppDataSource
+import com.example.budgettingtogether.storage.StoragePreferenceManager
+import com.example.budgettingtogether.storage.source.ICategorySource
+import com.example.budgettingtogether.storage.source.IExpenseSource
 import com.example.budgettingtogether.databinding.FragmentExpensesBinding
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -24,8 +27,9 @@ class ExpensesFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var expenseAdapter: ExpenseAdapter
-    private lateinit var expenseDao: ExpenseDao
-    private lateinit var categoryDao: CategoryDao
+    private lateinit var appDataSource: AppDataSource
+    private val expenseSource: IExpenseSource get() = appDataSource.expenseSource
+    private val categorySource: ICategorySource get() = appDataSource.categorySource
     private lateinit var currencyRepository: CurrencyRepository
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
@@ -50,11 +54,10 @@ class ExpensesFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val database = AppDatabase.Companion.getDatabase(requireContext())
-        expenseDao = database.expenseDao()
-        categoryDao = database.categoryDao()
         sessionManager = SessionManager(requireContext())
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
         currencyRepository = CurrencyRepository(requireContext(), userGuid)
+        appDataSource = AppDataSource(database, StoragePreferenceManager(requireContext()))
 
         setupRecyclerView()
         setupFab()
@@ -94,7 +97,7 @@ class ExpensesFragment : Fragment() {
 
     private fun observeCategories() {
         viewLifecycleOwner.lifecycleScope.launch {
-            categoryDao.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
+            categorySource.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
                 categories = categoryList
             }
         }
@@ -118,7 +121,7 @@ class ExpensesFragment : Fragment() {
 
     private fun observeExpenses() {
         viewLifecycleOwner.lifecycleScope.launch {
-            expenseDao.getAllExpenses(pairedGuids).collectLatest { expenses ->
+            expenseSource.getAllExpenses(pairedGuids).collectLatest { expenses ->
                 allExpenses = expenses
                 updateDisplayedExpenses()
             }
@@ -160,13 +163,15 @@ class ExpensesFragment : Fragment() {
             defaultCurrencyTracking = defaultCurrencyTracking,
             userGuid = userGuid
         ) { expense ->
-            expenseDao.insert(expense)
+            expenseSource.insert(expense)
+            observeExpenses()
         }.show()
     }
 
     private fun deleteExpense(expense: Expense) {
         viewLifecycleOwner.lifecycleScope.launch {
-            expenseDao.delete(expense)
+            expenseSource.delete(expense)
+            observeExpenses()
         }
     }
 

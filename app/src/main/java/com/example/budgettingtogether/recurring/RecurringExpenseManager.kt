@@ -1,15 +1,15 @@
 package com.example.budgettingtogether.recurring
 
 import com.example.budgettingtogether.expenses.Expense
-import com.example.budgettingtogether.expenses.ExpenseDao
+import com.example.budgettingtogether.storage.source.IExpenseSource
+import com.example.budgettingtogether.storage.source.IUserPreferencesSource
 import com.example.budgettingtogether.util.RecurringType
-import com.example.budgettingtogether.util.UserPreferencesDao
 import java.util.Calendar
 import java.util.Date
 
 class RecurringExpenseManager(
-    private val expenseDao: ExpenseDao,
-    private val userPreferencesDao: UserPreferencesDao,
+    private val expenseSource: IExpenseSource,
+    private val userPreferencesSource: IUserPreferencesSource,
     private val userGuid: String,
     private val pairedGuids: List<String> = listOf(userGuid)
 ) {
@@ -18,7 +18,7 @@ class RecurringExpenseManager(
         val currentMonth = calendar.get(Calendar.MONTH)
         val currentYear = calendar.get(Calendar.YEAR)
 
-        val preferences = userPreferencesDao.getPreferencesOnce(userGuid) ?: return
+        val preferences = userPreferencesSource.getPreferencesOnce(userGuid) ?: return
 
         // Check if we already generated for this month
         if (preferences.lastRecurringGenerationMonth == currentMonth &&
@@ -27,7 +27,7 @@ class RecurringExpenseManager(
         }
 
         // Get monthly recurring templates
-        val monthlyTemplates = expenseDao.getMonthlyRecurringExpensesOnce(pairedGuids)
+        val monthlyTemplates = expenseSource.getMonthlyRecurringExpensesOnce(pairedGuids)
 
         // Calculate month boundaries for duplicate checking
         val monthStart = Calendar.getInstance().apply {
@@ -52,7 +52,7 @@ class RecurringExpenseManager(
 
         // Create new expenses from templates (only if not already created this month)
         for (template in monthlyTemplates) {
-            val existingCount = expenseDao.countMatchingExpensesInMonth(
+            val existingCount = expenseSource.countMatchingExpensesInMonth(
                 userGuids = pairedGuids,
                 title = template.title,
                 category = template.category,
@@ -74,11 +74,11 @@ class RecurringExpenseManager(
                     originalCurrency = template.originalCurrency,
                     userGuid = template.userGuid
                 )
-                expenseDao.insert(newExpense)
+                expenseSource.insert(newExpense)
             }
         }
 
         // Update tracking in preferences
-        userPreferencesDao.updateLastRecurringGeneration(userGuid, currentMonth, currentYear)
+        userPreferencesSource.updateLastRecurringGeneration(userGuid, currentMonth, currentYear)
     }
 }

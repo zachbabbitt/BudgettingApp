@@ -10,13 +10,15 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.core.AppDatabase
-import com.example.budgettingtogether.categories.CategoryDao
 import com.example.budgettingtogether.expenses.Expense
 import com.example.budgettingtogether.expenses.ExpenseAdapter
-import com.example.budgettingtogether.expenses.ExpenseDao
 import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
+import com.example.budgettingtogether.storage.AppDataSource
+import com.example.budgettingtogether.storage.StoragePreferenceManager
+import com.example.budgettingtogether.storage.source.ICategorySource
+import com.example.budgettingtogether.storage.source.IExpenseSource
 import com.example.budgettingtogether.databinding.FragmentAnalysisBinding
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -28,8 +30,9 @@ class AnalysisFragment : Fragment() {
     private var _binding: FragmentAnalysisBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var expenseDao: ExpenseDao
-    private lateinit var categoryDao: CategoryDao
+    private lateinit var appDataSource: AppDataSource
+    private val expenseSource: IExpenseSource get() = appDataSource.expenseSource
+    private val categorySource: ICategorySource get() = appDataSource.categorySource
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
@@ -55,10 +58,9 @@ class AnalysisFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val database = AppDatabase.Companion.getDatabase(requireContext())
-        expenseDao = database.expenseDao()
-        categoryDao = database.categoryDao()
         sessionManager = SessionManager(requireContext())
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
+        appDataSource = AppDataSource(database, StoragePreferenceManager(requireContext()))
 
         setupRecyclerViews()
         loadPairedGuidsAndObserve()
@@ -103,19 +105,19 @@ class AnalysisFragment : Fragment() {
 
     private fun observeData() {
         viewLifecycleOwner.lifecycleScope.launch {
-            categoryDao.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
+            categorySource.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
                 setupCategoryFilter(categoryList)
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            expenseDao.getRecurringExpenses(pairedGuids).collectLatest { recurringExpenses ->
+            expenseSource.getRecurringExpenses(pairedGuids).collectLatest { recurringExpenses ->
                 updateRecurringSection(recurringExpenses)
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            expenseDao.getAllExpenses(pairedGuids).collectLatest { expenses ->
+            expenseSource.getAllExpenses(pairedGuids).collectLatest { expenses ->
                 allExpenses = expenses
                 updateCategoryExpenses()
             }

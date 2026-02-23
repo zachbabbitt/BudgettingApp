@@ -14,6 +14,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.R
+import com.example.budgettingtogether.storage.AppDataSource
+import com.example.budgettingtogether.storage.StoragePreferenceManager
+import com.example.budgettingtogether.storage.source.IIncomeSource
 import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.currency.CurrencyData
 import com.example.budgettingtogether.currency.CurrencyDropdownAdapter
@@ -31,7 +34,8 @@ class IncomeFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var incomeAdapter: IncomeAdapter
-    private lateinit var incomeDao: IncomeDao
+    private lateinit var appDataSource: AppDataSource
+    private val incomeSource: IIncomeSource get() = appDataSource.incomeSource
     private lateinit var currencyRepository: CurrencyRepository
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
@@ -72,10 +76,10 @@ class IncomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val database = AppDatabase.Companion.getDatabase(requireContext())
-        incomeDao = database.incomeDao()
         sessionManager = SessionManager(requireContext())
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
         currencyRepository = CurrencyRepository(requireContext(), userGuid)
+        appDataSource = AppDataSource(database, StoragePreferenceManager(requireContext()))
 
         setupRecyclerView()
         setupFab()
@@ -122,7 +126,7 @@ class IncomeFragment : Fragment() {
 
     private fun observeIncome() {
         viewLifecycleOwner.lifecycleScope.launch {
-            incomeDao.getAllIncome(pairedGuids).collectLatest { incomeList ->
+            incomeSource.getAllIncome(pairedGuids).collectLatest { incomeList ->
                 incomeAdapter.updateList(incomeList)
                 updateTotalDisplay(incomeList)
             }
@@ -250,13 +254,15 @@ class IncomeFragment : Fragment() {
 
     private fun addIncome(income: Income) {
         viewLifecycleOwner.lifecycleScope.launch {
-            incomeDao.insert(income)
+            incomeSource.insert(income)
+            observeIncome()
         }
     }
 
     private fun deleteIncome(income: Income) {
         viewLifecycleOwner.lifecycleScope.launch {
-            incomeDao.delete(income)
+            incomeSource.delete(income)
+            observeIncome()
         }
     }
 

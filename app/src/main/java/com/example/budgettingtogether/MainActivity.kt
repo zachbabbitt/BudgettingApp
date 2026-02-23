@@ -21,13 +21,16 @@ import com.example.budgettingtogether.categories.CategoriesActivity
 import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.currency.CurrencySettingsActivity
 import com.example.budgettingtogether.databinding.ActivityMainBinding
-import com.example.budgettingtogether.expenses.ExpenseDao
 import com.example.budgettingtogether.income.IncomeActivity
-import com.example.budgettingtogether.income.IncomeDao
 import com.example.budgettingtogether.limits.BudgetLimitsActivity
 import com.example.budgettingtogether.recurring.RecurringExpenseManager
+import com.example.budgettingtogether.settings.StorageSettingsActivity
+import com.example.budgettingtogether.storage.AppDataSource
+import com.example.budgettingtogether.storage.StoragePreferenceManager
+import com.example.budgettingtogether.storage.source.IExpenseSource
+import com.example.budgettingtogether.storage.source.IIncomeSource
+import com.example.budgettingtogether.storage.source.IUserPreferencesSource
 import com.example.budgettingtogether.util.CsvExporter
-import com.example.budgettingtogether.util.UserPreferencesDao
 import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -39,9 +42,9 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var expenseDao: ExpenseDao
-    private lateinit var incomeDao: IncomeDao
-    private lateinit var userPreferencesDao: UserPreferencesDao
+    private lateinit var expenseSource: IExpenseSource
+    private lateinit var incomeSource: IIncomeSource
+    private lateinit var userPreferencesSource: IUserPreferencesSource
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
 
@@ -68,11 +71,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val database = AppDatabase.getDatabase(this)
-        expenseDao = database.expenseDao()
-        incomeDao = database.incomeDao()
-        userPreferencesDao = database.userPreferencesDao()
         sessionManager = SessionManager(this)
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
+        val appDataSource = AppDataSource(database, StoragePreferenceManager(this))
+        expenseSource = appDataSource.expenseSource
+        incomeSource = appDataSource.incomeSource
+        userPreferencesSource = appDataSource.userPreferencesSource
 
         setupToolbar()
         setupNavigationDrawer()
@@ -86,7 +90,7 @@ class MainActivity : AppCompatActivity() {
         val userGuid = sessionManager.getUserGuid() ?: return
         lifecycleScope.launch {
             loadPairedGuids()
-            RecurringExpenseManager(expenseDao, userPreferencesDao, userGuid, pairedGuids.ifEmpty { listOf(userGuid) })
+            RecurringExpenseManager(expenseSource, userPreferencesSource, userGuid, pairedGuids.ifEmpty { listOf(userGuid) })
                 .generateMonthlyRecurringExpensesIfNeeded()
         }
     }
@@ -133,6 +137,9 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_pairing -> {
                     startActivity(Intent(this, PairingActivity::class.java))
                 }
+                R.id.nav_storage_settings -> {
+                    startActivity(Intent(this, StorageSettingsActivity::class.java))
+                }
                 R.id.nav_export_csv -> {
                     exportToCsv()
                 }
@@ -174,8 +181,8 @@ class MainActivity : AppCompatActivity() {
     private fun exportToCsv() {
         lifecycleScope.launch {
             val guids = pairedGuids.ifEmpty { listOf(sessionManager.getUserGuid() ?: "") }
-            val expenses = expenseDao.getAllExpenses(guids).first()
-            val income = incomeDao.getAllIncome(guids).first()
+            val expenses = expenseSource.getAllExpenses(guids).first()
+            val income = incomeSource.getAllIncome(guids).first()
 
             if (expenses.isEmpty() && income.isEmpty()) {
                 Toast.makeText(this@MainActivity, R.string.export_empty, Toast.LENGTH_SHORT).show()

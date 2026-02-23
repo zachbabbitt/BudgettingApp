@@ -9,8 +9,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.core.AppDatabase
-import com.example.budgettingtogether.categories.CategoryDao
 import com.example.budgettingtogether.R
+import com.example.budgettingtogether.storage.AppDataSource
+import com.example.budgettingtogether.storage.StoragePreferenceManager
+import com.example.budgettingtogether.storage.source.ICategorySource
+import com.example.budgettingtogether.storage.source.IExpenseSource
 import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.databinding.ActivityExpensesBinding
 import com.example.budgettingtogether.databinding.DialogAddExpenseBinding
@@ -23,8 +26,8 @@ class ExpensesActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityExpensesBinding
     private lateinit var expenseAdapter: ExpenseAdapter
-    private lateinit var expenseDao: ExpenseDao
-    private lateinit var categoryDao: CategoryDao
+    private lateinit var expenseSource: IExpenseSource
+    private lateinit var categorySource: ICategorySource
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
@@ -46,10 +49,11 @@ class ExpensesActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val database = AppDatabase.Companion.getDatabase(this)
-        expenseDao = database.expenseDao()
-        categoryDao = database.categoryDao()
         sessionManager = SessionManager(this)
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
+        val appDataSource = AppDataSource(database, StoragePreferenceManager(this))
+        expenseSource = appDataSource.expenseSource
+        categorySource = appDataSource.categorySource
 
         setupToolbar()
         setupRecyclerView()
@@ -68,7 +72,7 @@ class ExpensesActivity : AppCompatActivity() {
 
     private fun observeCategories() {
         lifecycleScope.launch {
-            categoryDao.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
+            categorySource.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
                 categories = categoryList
             }
         }
@@ -99,7 +103,7 @@ class ExpensesActivity : AppCompatActivity() {
 
     private fun observeExpenses() {
         lifecycleScope.launch {
-            expenseDao.getAllExpenses(pairedGuids).collectLatest { expenses ->
+            expenseSource.getAllExpenses(pairedGuids).collectLatest { expenses ->
                 expenseAdapter.updateList(expenses)
                 updateTotalDisplay(expenses)
             }
@@ -150,13 +154,15 @@ class ExpensesActivity : AppCompatActivity() {
 
     private fun addExpense(expense: Expense) {
         lifecycleScope.launch {
-            expenseDao.insert(expense)
+            expenseSource.insert(expense)
+            observeExpenses()
         }
     }
 
     private fun deleteExpense(expense: Expense) {
         lifecycleScope.launch {
-            expenseDao.delete(expense)
+            expenseSource.delete(expense)
+            observeExpenses()
         }
     }
 

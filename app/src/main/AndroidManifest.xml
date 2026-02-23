@@ -69,6 +69,11 @@
             android:exported="false"
             android:label="@string/currency_settings"
             android:theme="@style/Theme.BudgettingTogether" />
+        <activity
+            android:name=".settings.StorageSettingsActivity"
+            android:exported="false"
+            android:label="@string/storage_settings_title"
+            android:theme="@style/Theme.BudgettingTogether" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
