@@ -7,13 +7,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.core.AppDatabase
-import com.example.budgettingtogether.categories.CategoryDao
 import com.example.budgettingtogether.expenses.Expense
 import com.example.budgettingtogether.expenses.ExpenseAdapter
-import com.example.budgettingtogether.expenses.ExpenseDao
 import com.example.budgettingtogether.R
 import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
+import com.example.budgettingtogether.storage.AppDataSource
+import com.example.budgettingtogether.storage.StoragePreferenceManager
+import com.example.budgettingtogether.storage.source.ICategorySource
+import com.example.budgettingtogether.storage.source.IExpenseSource
 import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.databinding.ActivityAnalysisBinding
 import kotlinx.coroutines.flow.collectLatest
@@ -24,8 +26,8 @@ import java.util.Locale
 class AnalysisActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAnalysisBinding
-    private lateinit var expenseDao: ExpenseDao
-    private lateinit var categoryDao: CategoryDao
+    private lateinit var expenseSource: IExpenseSource
+    private lateinit var categorySource: ICategorySource
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
@@ -44,10 +46,11 @@ class AnalysisActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val database = AppDatabase.Companion.getDatabase(this)
-        expenseDao = database.expenseDao()
-        categoryDao = database.categoryDao()
         sessionManager = SessionManager(this)
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
+        val appDataSource = AppDataSource(database, StoragePreferenceManager(this))
+        expenseSource = appDataSource.expenseSource
+        categorySource = appDataSource.categorySource
 
         setupToolbar()
         setupRecyclerViews()
@@ -100,19 +103,19 @@ class AnalysisActivity : AppCompatActivity() {
 
     private fun observeData() {
         lifecycleScope.launch {
-            categoryDao.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
+            categorySource.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
                 setupCategoryFilter(categoryList)
             }
         }
 
         lifecycleScope.launch {
-            expenseDao.getRecurringExpenses(pairedGuids).collectLatest { recurringExpenses ->
+            expenseSource.getRecurringExpenses(pairedGuids).collectLatest { recurringExpenses ->
                 updateRecurringSection(recurringExpenses)
             }
         }
 
         lifecycleScope.launch {
-            expenseDao.getAllExpenses(pairedGuids).collectLatest { expenses ->
+            expenseSource.getAllExpenses(pairedGuids).collectLatest { expenses ->
                 allExpenses = expenses
                 updateCategoryExpenses()
             }

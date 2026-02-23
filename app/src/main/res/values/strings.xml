@@ -127,6 +127,21 @@
     <string name="logout">Logout</string>
     <string name="logged_in_as">Logged in as %1$s</string>
 
+    <!-- Storage Settings -->
+    <string name="storage_settings_title">Storage Settings</string>
+    <string name="storage_mode_label">Storage Mode</string>
+    <string name="mode_local">Local (on this device)</string>
+    <string name="mode_remote">Remote (Supabase cloud)</string>
+    <string name="use_remote_storage">Use remote storage</string>
+    <string name="storage_info_title">About Storage Modes</string>
+    <string name="storage_info_body">Local stores data on this device only. Remote stores data in the cloud for cross-device access. Account and exchange rate data always stay local.</string>
+    <string name="switch_storage_mode">Switch Storage Mode</string>
+    <string name="migrate_to_remote_confirm">Your local data will be uploaded to the cloud. Continue?</string>
+    <string name="migrate_to_local_confirm">Cloud data will be downloaded to this device. Continue?</string>
+    <string name="confirm_switch">Switch</string>
+    <string name="migration_success">Storage mode switched successfully.</string>
+    <string name="migration_failed">Migration failed: %s</string>
+
     <!-- Pairing -->
     <string name="pairing_title">Partners</string>
     <string name="search_users">Search Users</string>

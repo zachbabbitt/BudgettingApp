@@ -23,6 +23,10 @@
             android:icon="@android:drawable/ic_menu_share"
             android:title="@string/pairing_title" />
         <item
+            android:id="@+id/nav_storage_settings"
+            android:icon="@android:drawable/ic_menu_manage"
+            android:title="@string/storage_settings_title" />
+        <item
             android:id="@+id/nav_export_csv"
             android:icon="@android:drawable/ic_menu_save"
             android:title="@string/export_csv" />

@@ -4,9 +4,12 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.budgettingtogether.categories.CategoryDao
 import com.example.budgettingtogether.R
 import com.example.budgettingtogether.core.AppDatabase
+import com.example.budgettingtogether.storage.AppDataSource
+import com.example.budgettingtogether.storage.StoragePreferenceManager
+import com.example.budgettingtogether.storage.source.IBudgetLimitSource
+import com.example.budgettingtogether.storage.source.ICategorySource
 import com.example.budgettingtogether.currency.CurrencyData
 import com.example.budgettingtogether.currency.CurrencyRepository
 import com.example.budgettingtogether.databinding.ActivityBudgetLimitsBinding
@@ -19,8 +22,8 @@ import kotlinx.coroutines.launch
 class BudgetLimitsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityBudgetLimitsBinding
-    private lateinit var budgetLimitDao: BudgetLimitDao
-    private lateinit var categoryDao: CategoryDao
+    private lateinit var budgetLimitSource: IBudgetLimitSource
+    private lateinit var categorySource: ICategorySource
     private lateinit var currencyRepository: CurrencyRepository
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
@@ -35,11 +38,12 @@ class BudgetLimitsActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val database = AppDatabase.getDatabase(this)
-        budgetLimitDao = database.budgetLimitDao()
-        categoryDao = database.categoryDao()
         sessionManager = SessionManager(this)
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
         currencyRepository = CurrencyRepository(this, userGuid)
+        val appDataSource = AppDataSource(database, StoragePreferenceManager(this))
+        budgetLimitSource = appDataSource.budgetLimitSource
+        categorySource = appDataSource.categorySource
 
         setupToolbar()
         setupRecyclerView()
@@ -68,8 +72,8 @@ class BudgetLimitsActivity : AppCompatActivity() {
     private fun observeData() {
         lifecycleScope.launch {
             combine(
-                categoryDao.getAllCategoryNames(pairedGuids),
-                budgetLimitDao.getAllLimits(pairedGuids),
+                categorySource.getAllCategoryNames(pairedGuids),
+                budgetLimitSource.getAllLimits(pairedGuids),
                 currencyRepository.observeDefaultCurrencyTracking()
             ) { categories, limits, trackingCurrency ->
                 Triple(categories, limits, trackingCurrency)
@@ -97,9 +101,9 @@ class BudgetLimitsActivity : AppCompatActivity() {
     private fun saveLimitDebounced(category: String, limit: Double?) {
         lifecycleScope.launch {
             if (limit != null && limit > 0) {
-                budgetLimitDao.insertOrUpdate(BudgetLimit(category, limit, currentCurrencyCode, userGuid = userGuid))
+                budgetLimitSource.insertOrUpdate(BudgetLimit(category, limit, currentCurrencyCode, userGuid = userGuid))
             } else {
-                budgetLimitDao.delete(userGuid, category)
+                budgetLimitSource.delete(userGuid, category)
             }
         }
     }
