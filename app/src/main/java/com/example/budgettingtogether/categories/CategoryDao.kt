@@ -26,4 +26,10 @@ interface CategoryDao {
 
     @Query("DELETE FROM categories WHERE name = :name AND isDefault = 0")
     suspend fun deleteByName(name: String)
+
+    @Query("SELECT * FROM categories WHERE userGuid IN (:userGuids) OR isDefault = 1 ORDER BY isDefault DESC, name ASC")
+    fun getAllCategories(userGuids: List<String>): Flow<List<Category>>
+
+    @Query("SELECT name FROM categories WHERE userGuid IN (:userGuids) OR isDefault = 1 ORDER BY isDefault DESC, name ASC")
+    fun getAllCategoryNames(userGuids: List<String>): Flow<List<String>>
 }

@@ -28,4 +28,19 @@ interface IncomeDao {
 
     @Query("SELECT SUM(amount) FROM income WHERE userGuid = :userGuid")
     fun getTotalAmount(userGuid: String): Flow<Double?>
+
+    @Query("SELECT * FROM income WHERE userGuid IN (:userGuids) ORDER BY date DESC")
+    fun getAllIncome(userGuids: List<String>): Flow<List<Income>>
+
+    @Query("SELECT * FROM income WHERE userGuid IN (:userGuids) AND recurringType != 'NONE' ORDER BY date DESC")
+    fun getRecurringIncome(userGuids: List<String>): Flow<List<Income>>
+
+    @Query("SELECT SUM(amount) FROM income WHERE userGuid IN (:userGuids)")
+    fun getTotalAmount(userGuids: List<String>): Flow<Double?>
+
+    @Query("SELECT * FROM income WHERE userGuid IN (:userGuids) AND source = :source ORDER BY date DESC")
+    fun getIncomeBySource(userGuids: List<String>, source: String): Flow<List<Income>>
+
+    @Query("SELECT * FROM income WHERE userGuid IN (:userGuids) AND recurringType = :type ORDER BY date DESC")
+    fun getIncomeByRecurringType(userGuids: List<String>, type: String): Flow<List<Income>>
 }

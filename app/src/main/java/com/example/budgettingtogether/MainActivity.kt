@@ -14,6 +14,8 @@ import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.budgettingtogether.auth.LocalAuthRepository
 import com.example.budgettingtogether.auth.LoginActivity
+import com.example.budgettingtogether.auth.PairingActivity
+import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.categories.CategoriesActivity
 import com.example.budgettingtogether.core.AppDatabase
@@ -41,7 +43,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var incomeDao: IncomeDao
     private lateinit var userPreferencesDao: UserPreferencesDao
     private lateinit var sessionManager: SessionManager
+    private lateinit var pairingRepository: PairingRepository
 
+    private var pairedGuids: List<String> = emptyList()
     private var pendingCsvContent: String? = null
 
     private val createDocumentLauncher = registerForActivityResult(
@@ -68,20 +72,30 @@ class MainActivity : AppCompatActivity() {
         incomeDao = database.incomeDao()
         userPreferencesDao = database.userPreferencesDao()
         sessionManager = SessionManager(this)
+        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
 
         setupToolbar()
         setupNavigationDrawer()
         setupViewPager()
         displayUsername(database)
+        loadPairedGuids()
     }
 
     override fun onResume() {
         super.onResume()
-        // Check for recurring expenses when returning to app (e.g., after date change)
         val userGuid = sessionManager.getUserGuid() ?: return
         lifecycleScope.launch {
-            RecurringExpenseManager(expenseDao, userPreferencesDao, userGuid)
+            loadPairedGuids()
+            RecurringExpenseManager(expenseDao, userPreferencesDao, userGuid, pairedGuids.ifEmpty { listOf(userGuid) })
                 .generateMonthlyRecurringExpensesIfNeeded()
+        }
+    }
+
+    private fun loadPairedGuids() {
+        lifecycleScope.launch {
+            val userId = sessionManager.getUserId() ?: return@launch
+            val userGuid = sessionManager.getUserGuid() ?: return@launch
+            pairedGuids = pairingRepository.getPairedUserGuids(userId, userGuid)
         }
     }
 
@@ -115,6 +129,9 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.nav_categories -> {
                     startActivity(Intent(this, CategoriesActivity::class.java))
+                }
+                R.id.nav_pairing -> {
+                    startActivity(Intent(this, PairingActivity::class.java))
                 }
                 R.id.nav_export_csv -> {
                     exportToCsv()
@@ -156,9 +173,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun exportToCsv() {
         lifecycleScope.launch {
-            val userGuid = sessionManager.getUserGuid() ?: ""
-            val expenses = expenseDao.getAllExpenses(userGuid).first()
-            val income = incomeDao.getAllIncome(userGuid).first()
+            val guids = pairedGuids.ifEmpty { listOf(sessionManager.getUserGuid() ?: "") }
+            val expenses = expenseDao.getAllExpenses(guids).first()
+            val income = incomeDao.getAllIncome(guids).first()
 
             if (expenses.isEmpty() && income.isEmpty()) {
                 Toast.makeText(this@MainActivity, R.string.export_empty, Toast.LENGTH_SHORT).show()

@@ -15,6 +15,7 @@ import com.example.budgettingtogether.expenses.Expense
 import com.example.budgettingtogether.expenses.ExpenseAdapter
 import com.example.budgettingtogether.expenses.ExpenseDao
 import com.example.budgettingtogether.util.RecurringType
+import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.databinding.FragmentAnalysisBinding
 import kotlinx.coroutines.flow.collectLatest
@@ -30,7 +31,9 @@ class AnalysisFragment : Fragment() {
     private lateinit var expenseDao: ExpenseDao
     private lateinit var categoryDao: CategoryDao
     private lateinit var sessionManager: SessionManager
+    private lateinit var pairingRepository: PairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
+    private var pairedGuids: List<String> = emptyList()
     private lateinit var recurringAdapter: ExpenseAdapter
     private lateinit var categoryExpenseAdapter: ExpenseAdapter
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
@@ -55,9 +58,10 @@ class AnalysisFragment : Fragment() {
         expenseDao = database.expenseDao()
         categoryDao = database.categoryDao()
         sessionManager = SessionManager(requireContext())
+        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
 
         setupRecyclerViews()
-        observeData()
+        loadPairedGuidsAndObserve()
     }
 
     private fun setupRecyclerViews() {
@@ -89,21 +93,29 @@ class AnalysisFragment : Fragment() {
         }
     }
 
+    private fun loadPairedGuidsAndObserve() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val userId = sessionManager.getUserId() ?: return@launch
+            pairedGuids = pairingRepository.getPairedUserGuids(userId, userGuid)
+            observeData()
+        }
+    }
+
     private fun observeData() {
         viewLifecycleOwner.lifecycleScope.launch {
-            categoryDao.getAllCategoryNames(userGuid).collectLatest { categoryList ->
+            categoryDao.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
                 setupCategoryFilter(categoryList)
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            expenseDao.getRecurringExpenses(userGuid).collectLatest { recurringExpenses ->
+            expenseDao.getRecurringExpenses(pairedGuids).collectLatest { recurringExpenses ->
                 updateRecurringSection(recurringExpenses)
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            expenseDao.getAllExpenses(userGuid).collectLatest { expenses ->
+            expenseDao.getAllExpenses(pairedGuids).collectLatest { expenses ->
                 allExpenses = expenses
                 updateCategoryExpenses()
             }

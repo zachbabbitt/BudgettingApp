@@ -13,6 +13,7 @@ import com.example.budgettingtogether.R
 import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.databinding.ActivityIncomeBinding
 import com.example.budgettingtogether.databinding.DialogAddIncomeBinding
+import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -23,7 +24,9 @@ class IncomeActivity : AppCompatActivity() {
     private lateinit var incomeAdapter: IncomeAdapter
     private lateinit var incomeDao: IncomeDao
     private lateinit var sessionManager: SessionManager
+    private lateinit var pairingRepository: PairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
+    private var pairedGuids: List<String> = emptyList()
 
     private val sources = listOf(
         "Salary",
@@ -51,11 +54,12 @@ class IncomeActivity : AppCompatActivity() {
         val database = AppDatabase.Companion.getDatabase(this)
         incomeDao = database.incomeDao()
         sessionManager = SessionManager(this)
+        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
 
         setupToolbar()
         setupRecyclerView()
         setupFab()
-        observeIncome()
+        loadPairedGuidsAndObserve()
     }
 
     private fun setupToolbar() {
@@ -81,9 +85,17 @@ class IncomeActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadPairedGuidsAndObserve() {
+        lifecycleScope.launch {
+            val userId = sessionManager.getUserId() ?: return@launch
+            pairedGuids = pairingRepository.getPairedUserGuids(userId, userGuid)
+            observeIncome()
+        }
+    }
+
     private fun observeIncome() {
         lifecycleScope.launch {
-            incomeDao.getAllIncome(userGuid).collectLatest { incomeList ->
+            incomeDao.getAllIncome(pairedGuids).collectLatest { incomeList ->
                 incomeAdapter.updateList(incomeList)
                 updateTotalDisplay(incomeList)
             }

@@ -10,7 +10,8 @@ import java.util.Date
 class RecurringExpenseManager(
     private val expenseDao: ExpenseDao,
     private val userPreferencesDao: UserPreferencesDao,
-    private val userGuid: String
+    private val userGuid: String,
+    private val pairedGuids: List<String> = listOf(userGuid)
 ) {
     suspend fun generateMonthlyRecurringExpensesIfNeeded() {
         val calendar = Calendar.getInstance()
@@ -26,7 +27,7 @@ class RecurringExpenseManager(
         }
 
         // Get monthly recurring templates
-        val monthlyTemplates = expenseDao.getMonthlyRecurringExpensesOnce(userGuid)
+        val monthlyTemplates = expenseDao.getMonthlyRecurringExpensesOnce(pairedGuids)
 
         // Calculate month boundaries for duplicate checking
         val monthStart = Calendar.getInstance().apply {
@@ -52,7 +53,7 @@ class RecurringExpenseManager(
         // Create new expenses from templates (only if not already created this month)
         for (template in monthlyTemplates) {
             val existingCount = expenseDao.countMatchingExpensesInMonth(
-                userGuid = userGuid,
+                userGuids = pairedGuids,
                 title = template.title,
                 category = template.category,
                 recurringType = RecurringType.MONTHLY.name,

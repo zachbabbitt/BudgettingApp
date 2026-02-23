@@ -10,6 +10,7 @@ import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.currency.CurrencyData
 import com.example.budgettingtogether.currency.CurrencyRepository
 import com.example.budgettingtogether.databinding.ActivityBudgetLimitsBinding
+import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
@@ -22,7 +23,9 @@ class BudgetLimitsActivity : AppCompatActivity() {
     private lateinit var categoryDao: CategoryDao
     private lateinit var currencyRepository: CurrencyRepository
     private lateinit var sessionManager: SessionManager
+    private lateinit var pairingRepository: PairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
+    private var pairedGuids: List<String> = emptyList()
     private var adapter: BudgetLimitAdapter? = null
     private var currentCurrencyCode: String = "USD"
 
@@ -35,11 +38,12 @@ class BudgetLimitsActivity : AppCompatActivity() {
         budgetLimitDao = database.budgetLimitDao()
         categoryDao = database.categoryDao()
         sessionManager = SessionManager(this)
+        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
         currencyRepository = CurrencyRepository(this, userGuid)
 
         setupToolbar()
         setupRecyclerView()
-        observeData()
+        loadPairedGuidsAndObserve()
     }
 
     private fun setupToolbar() {
@@ -53,11 +57,19 @@ class BudgetLimitsActivity : AppCompatActivity() {
         binding.recyclerViewLimits.layoutManager = LinearLayoutManager(this)
     }
 
+    private fun loadPairedGuidsAndObserve() {
+        lifecycleScope.launch {
+            val userId = sessionManager.getUserId() ?: return@launch
+            pairedGuids = pairingRepository.getPairedUserGuids(userId, userGuid)
+            observeData()
+        }
+    }
+
     private fun observeData() {
         lifecycleScope.launch {
             combine(
-                categoryDao.getAllCategoryNames(userGuid),
-                budgetLimitDao.getAllLimits(userGuid),
+                categoryDao.getAllCategoryNames(pairedGuids),
+                budgetLimitDao.getAllLimits(pairedGuids),
                 currencyRepository.observeDefaultCurrencyTracking()
             ) { categories, limits, trackingCurrency ->
                 Triple(categories, limits, trackingCurrency)

@@ -25,4 +25,13 @@ interface BudgetLimitDao {
 
     @Query("DELETE FROM budget_limits WHERE userGuid = :userGuid AND category = :category")
     suspend fun delete(userGuid: String, category: String)
+
+    @Query("SELECT * FROM budget_limits WHERE userGuid IN (:userGuids) ORDER BY category ASC")
+    fun getAllLimits(userGuids: List<String>): Flow<List<BudgetLimit>>
+
+    @Query("SELECT * FROM budget_limits WHERE userGuid IN (:userGuids) ORDER BY category ASC")
+    suspend fun getAllLimitsOnce(userGuids: List<String>): List<BudgetLimit>
+
+    @Query("SELECT * FROM budget_limits WHERE userGuid IN (:userGuids) AND category = :category")
+    suspend fun getLimitForCategory(userGuids: List<String>, category: String): BudgetLimit?
 }

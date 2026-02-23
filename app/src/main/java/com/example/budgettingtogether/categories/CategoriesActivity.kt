@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.R
+import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.databinding.ActivityCategoriesBinding
@@ -18,7 +19,9 @@ class CategoriesActivity : AppCompatActivity() {
     private lateinit var categoryDao: CategoryDao
     private lateinit var adapter: CategoryAdapter
     private lateinit var sessionManager: SessionManager
+    private lateinit var pairingRepository: PairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
+    private var pairedGuids: List<String> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,11 +31,12 @@ class CategoriesActivity : AppCompatActivity() {
         val database = AppDatabase.getDatabase(this)
         categoryDao = database.categoryDao()
         sessionManager = SessionManager(this)
+        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
 
         setupToolbar()
         setupRecyclerView()
         setupAddButton()
-        observeCategories()
+        loadPairedGuidsAndObserve()
     }
 
     private fun setupToolbar() {
@@ -64,9 +68,17 @@ class CategoriesActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadPairedGuidsAndObserve() {
+        lifecycleScope.launch {
+            val userId = sessionManager.getUserId() ?: return@launch
+            pairedGuids = pairingRepository.getPairedUserGuids(userId, userGuid)
+            observeCategories()
+        }
+    }
+
     private fun observeCategories() {
         lifecycleScope.launch {
-            categoryDao.getAllCategories(userGuid).collectLatest { categories ->
+            categoryDao.getAllCategories(pairedGuids).collectLatest { categories ->
                 adapter.updateList(categories)
             }
         }

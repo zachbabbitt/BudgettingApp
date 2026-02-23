@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.budgettingtogether.R
+import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.databinding.ActivityCurrencySettingsBinding
@@ -19,7 +20,9 @@ class CurrencySettingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityCurrencySettingsBinding
     private lateinit var currencyRepository: CurrencyRepository
     private lateinit var sessionManager: SessionManager
+    private lateinit var pairingRepository: PairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
+    private var pairedGuids: List<String> = emptyList()
 
     private val currencyCodes = CurrencyData.currencies.keys.sorted()
     private val currencyDisplayNames = currencyCodes.map { CurrencyData.getDisplayName(it) }
@@ -30,11 +33,14 @@ class CurrencySettingsActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         sessionManager = SessionManager(this)
+        val database = AppDatabase.getDatabase(this)
+        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
         currencyRepository = CurrencyRepository(this, userGuid)
 
         setupToolbar()
         setupDefaultCurrencySpinner()
         setupRefreshButton()
+        loadPairedGuids()
         loadData()
     }
 
@@ -43,6 +49,13 @@ class CurrencySettingsActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = getString(R.string.currency_settings)
         binding.toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
+    }
+
+    private fun loadPairedGuids() {
+        lifecycleScope.launch {
+            val userId = sessionManager.getUserId() ?: return@launch
+            pairedGuids = pairingRepository.getPairedUserGuids(userId, userGuid)
+        }
     }
 
     private fun setupDefaultCurrencySpinner() {
@@ -63,7 +76,8 @@ class CurrencySettingsActivity : AppCompatActivity() {
                             val result = currencyRepository.convertBudgetLimitsToNewCurrency(
                                 budgetLimitDao,
                                 oldCurrency,
-                                selectedCode
+                                selectedCode,
+                                pairedGuids.ifEmpty { listOf(userGuid) }
                             )
 
                             result.fold(

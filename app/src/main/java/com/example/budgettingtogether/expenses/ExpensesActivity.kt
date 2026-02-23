@@ -14,6 +14,7 @@ import com.example.budgettingtogether.R
 import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.databinding.ActivityExpensesBinding
 import com.example.budgettingtogether.databinding.DialogAddExpenseBinding
+import com.example.budgettingtogether.auth.PairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -25,7 +26,9 @@ class ExpensesActivity : AppCompatActivity() {
     private lateinit var expenseDao: ExpenseDao
     private lateinit var categoryDao: CategoryDao
     private lateinit var sessionManager: SessionManager
+    private lateinit var pairingRepository: PairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
+    private var pairedGuids: List<String> = emptyList()
 
     private var categories: List<String> = emptyList()
 
@@ -46,17 +49,26 @@ class ExpensesActivity : AppCompatActivity() {
         expenseDao = database.expenseDao()
         categoryDao = database.categoryDao()
         sessionManager = SessionManager(this)
+        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
 
         setupToolbar()
         setupRecyclerView()
         setupFab()
-        observeExpenses()
-        observeCategories()
+        loadPairedGuidsAndObserve()
+    }
+
+    private fun loadPairedGuidsAndObserve() {
+        lifecycleScope.launch {
+            val userId = sessionManager.getUserId() ?: return@launch
+            pairedGuids = pairingRepository.getPairedUserGuids(userId, userGuid)
+            observeCategories()
+            observeExpenses()
+        }
     }
 
     private fun observeCategories() {
         lifecycleScope.launch {
-            categoryDao.getAllCategoryNames(userGuid).collectLatest { categoryList ->
+            categoryDao.getAllCategoryNames(pairedGuids).collectLatest { categoryList ->
                 categories = categoryList
             }
         }
@@ -87,7 +99,7 @@ class ExpensesActivity : AppCompatActivity() {
 
     private fun observeExpenses() {
         lifecycleScope.launch {
-            expenseDao.getAllExpenses(userGuid).collectLatest { expenses ->
+            expenseDao.getAllExpenses(pairedGuids).collectLatest { expenses ->
                 expenseAdapter.updateList(expenses)
                 updateTotalDisplay(expenses)
             }
