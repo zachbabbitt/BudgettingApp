@@ -17,5 +17,6 @@ data class Income(
     val recurringType: RecurringType = RecurringType.NONE,
     val notes: String = "",
     val originalAmount: Double? = null,
-    val originalCurrency: String? = null
+    val originalCurrency: String? = null,
+    val userGuid: String = ""
 )

@@ -8,17 +8,17 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface IncomeDao {
-    @Query("SELECT * FROM income ORDER BY date DESC")
-    fun getAllIncome(): Flow<List<Income>>
+    @Query("SELECT * FROM income WHERE userGuid = :userGuid ORDER BY date DESC")
+    fun getAllIncome(userGuid: String): Flow<List<Income>>
 
-    @Query("SELECT * FROM income WHERE recurringType != 'NONE' ORDER BY date DESC")
-    fun getRecurringIncome(): Flow<List<Income>>
+    @Query("SELECT * FROM income WHERE userGuid = :userGuid AND recurringType != 'NONE' ORDER BY date DESC")
+    fun getRecurringIncome(userGuid: String): Flow<List<Income>>
 
-    @Query("SELECT * FROM income WHERE recurringType = :type ORDER BY date DESC")
-    fun getIncomeByRecurringType(type: String): Flow<List<Income>>
+    @Query("SELECT * FROM income WHERE userGuid = :userGuid AND recurringType = :type ORDER BY date DESC")
+    fun getIncomeByRecurringType(userGuid: String, type: String): Flow<List<Income>>
 
-    @Query("SELECT * FROM income WHERE source = :source ORDER BY date DESC")
-    fun getIncomeBySource(source: String): Flow<List<Income>>
+    @Query("SELECT * FROM income WHERE userGuid = :userGuid AND source = :source ORDER BY date DESC")
+    fun getIncomeBySource(userGuid: String, source: String): Flow<List<Income>>
 
     @Insert
     suspend fun insert(income: Income)
@@ -26,6 +26,6 @@ interface IncomeDao {
     @Delete
     suspend fun delete(income: Income)
 
-    @Query("SELECT SUM(amount) FROM income")
-    fun getTotalAmount(): Flow<Double?>
+    @Query("SELECT SUM(amount) FROM income WHERE userGuid = :userGuid")
+    fun getTotalAmount(userGuid: String): Flow<Double?>
 }

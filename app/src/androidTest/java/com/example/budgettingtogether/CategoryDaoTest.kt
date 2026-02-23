@@ -41,7 +41,7 @@ class CategoryDaoTest {
 
         categoryDao.insert(category)
 
-        val categories = categoryDao.getAllCategories().first()
+        val categories = categoryDao.getAllCategories("").first()
         assertEquals(1, categories.size)
         assertEquals("Travel", categories[0].name)
         assertFalse(categories[0].isDefault)
@@ -57,7 +57,7 @@ class CategoryDaoTest {
         categoryDao.insert(category2)
         categoryDao.insert(category3)
 
-        val categories = categoryDao.getAllCategories().first()
+        val categories = categoryDao.getAllCategories("").first()
         assertEquals(3, categories.size)
     }
 
@@ -71,7 +71,7 @@ class CategoryDaoTest {
 
         categoryDao.insertAll(categories)
 
-        val result = categoryDao.getAllCategories().first()
+        val result = categoryDao.getAllCategories("").first()
         assertEquals(3, result.size)
     }
 
@@ -83,7 +83,7 @@ class CategoryDaoTest {
         categoryDao.insert(category1)
         categoryDao.insert(category2)
 
-        val categories = categoryDao.getAllCategories().first()
+        val categories = categoryDao.getAllCategories("").first()
         assertEquals(1, categories.size)
         // First insert wins, so isDefault should be false
         assertFalse(categories[0].isDefault)
@@ -94,11 +94,11 @@ class CategoryDaoTest {
         val category = Category(name = "Travel", isDefault = false)
 
         categoryDao.insert(category)
-        var categories = categoryDao.getAllCategories().first()
+        var categories = categoryDao.getAllCategories("").first()
         assertEquals(1, categories.size)
 
         categoryDao.delete(category)
-        categories = categoryDao.getAllCategories().first()
+        categories = categoryDao.getAllCategories("").first()
         assertEquals(0, categories.size)
     }
 
@@ -107,10 +107,10 @@ class CategoryDaoTest {
         val category = Category(name = "Travel", isDefault = false)
 
         categoryDao.insert(category)
-        assertEquals(1, categoryDao.getAllCategories().first().size)
+        assertEquals(1, categoryDao.getAllCategories("").first().size)
 
         categoryDao.deleteByName("Travel")
-        assertEquals(0, categoryDao.getAllCategories().first().size)
+        assertEquals(0, categoryDao.getAllCategories("").first().size)
     }
 
     @Test
@@ -118,11 +118,11 @@ class CategoryDaoTest {
         val defaultCategory = Category(name = "Food & Dining", isDefault = true)
 
         categoryDao.insert(defaultCategory)
-        assertEquals(1, categoryDao.getAllCategories().first().size)
+        assertEquals(1, categoryDao.getAllCategories("").first().size)
 
         categoryDao.deleteByName("Food & Dining")
         // Default category should still exist
-        assertEquals(1, categoryDao.getAllCategories().first().size)
+        assertEquals(1, categoryDao.getAllCategories("").first().size)
     }
 
     @Test
@@ -132,7 +132,7 @@ class CategoryDaoTest {
         categoryDao.insert(Category(name = "Banana", isDefault = false))
         categoryDao.insert(Category(name = "Cherry", isDefault = true))
 
-        val categories = categoryDao.getAllCategories().first()
+        val categories = categoryDao.getAllCategories("").first()
 
         // Default categories should come first, then sorted by name
         assertEquals(4, categories.size)
@@ -153,7 +153,7 @@ class CategoryDaoTest {
         categoryDao.insert(Category(name = "Food", isDefault = true))
         categoryDao.insert(Category(name = "Travel", isDefault = false))
 
-        val names = categoryDao.getAllCategoryNames().first()
+        val names = categoryDao.getAllCategoryNames("").first()
 
         assertEquals(2, names.size)
         assertTrue(names.contains("Food"))
@@ -165,7 +165,7 @@ class CategoryDaoTest {
         categoryDao.insert(Category(name = "Zebra", isDefault = false))
         categoryDao.insert(Category(name = "Apple", isDefault = true))
 
-        val names = categoryDao.getAllCategoryNames().first()
+        val names = categoryDao.getAllCategoryNames("").first()
 
         // Default first, then alphabetical
         assertEquals("Apple", names[0])
@@ -177,7 +177,7 @@ class CategoryDaoTest {
         val category = Category(name = "Custom Category", isDefault = false)
 
         categoryDao.insert(category)
-        val retrieved = categoryDao.getAllCategories().first()[0]
+        val retrieved = categoryDao.getAllCategories("").first()[0]
 
         assertEquals("Custom Category", retrieved.name)
         assertFalse(retrieved.isDefault)
@@ -188,7 +188,7 @@ class CategoryDaoTest {
         val category = Category(name = "Default Category", isDefault = true)
 
         categoryDao.insert(category)
-        val retrieved = categoryDao.getAllCategories().first()[0]
+        val retrieved = categoryDao.getAllCategories("").first()[0]
 
         assertEquals("Default Category", retrieved.name)
         assertTrue(retrieved.isDefault)
@@ -196,10 +196,10 @@ class CategoryDaoTest {
 
     @Test
     fun emptyDatabase_returnsEmptyList() = runTest {
-        val categories = categoryDao.getAllCategories().first()
+        val categories = categoryDao.getAllCategories("").first()
         assertTrue(categories.isEmpty())
 
-        val names = categoryDao.getAllCategoryNames().first()
+        val names = categoryDao.getAllCategoryNames("").first()
         assertTrue(names.isEmpty())
     }
 }

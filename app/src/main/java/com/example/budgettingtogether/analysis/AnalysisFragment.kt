@@ -15,6 +15,7 @@ import com.example.budgettingtogether.expenses.Expense
 import com.example.budgettingtogether.expenses.ExpenseAdapter
 import com.example.budgettingtogether.expenses.ExpenseDao
 import com.example.budgettingtogether.util.RecurringType
+import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.databinding.FragmentAnalysisBinding
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -28,6 +29,8 @@ class AnalysisFragment : Fragment() {
 
     private lateinit var expenseDao: ExpenseDao
     private lateinit var categoryDao: CategoryDao
+    private lateinit var sessionManager: SessionManager
+    private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
     private lateinit var recurringAdapter: ExpenseAdapter
     private lateinit var categoryExpenseAdapter: ExpenseAdapter
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
@@ -51,6 +54,7 @@ class AnalysisFragment : Fragment() {
         val database = AppDatabase.Companion.getDatabase(requireContext())
         expenseDao = database.expenseDao()
         categoryDao = database.categoryDao()
+        sessionManager = SessionManager(requireContext())
 
         setupRecyclerViews()
         observeData()
@@ -87,19 +91,19 @@ class AnalysisFragment : Fragment() {
 
     private fun observeData() {
         viewLifecycleOwner.lifecycleScope.launch {
-            categoryDao.getAllCategoryNames().collectLatest { categoryList ->
+            categoryDao.getAllCategoryNames(userGuid).collectLatest { categoryList ->
                 setupCategoryFilter(categoryList)
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            expenseDao.getRecurringExpenses().collectLatest { recurringExpenses ->
+            expenseDao.getRecurringExpenses(userGuid).collectLatest { recurringExpenses ->
                 updateRecurringSection(recurringExpenses)
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            expenseDao.getAllExpenses().collectLatest { expenses ->
+            expenseDao.getAllExpenses(userGuid).collectLatest { expenses ->
                 allExpenses = expenses
                 updateCategoryExpenses()
             }

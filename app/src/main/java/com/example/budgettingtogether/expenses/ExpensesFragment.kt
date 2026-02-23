@@ -11,6 +11,7 @@ import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.categories.CategoryDao
 import com.example.budgettingtogether.currency.CurrencyRepository
 import com.example.budgettingtogether.R
+import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.databinding.FragmentExpensesBinding
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -25,6 +26,8 @@ class ExpensesFragment : Fragment() {
     private lateinit var expenseDao: ExpenseDao
     private lateinit var categoryDao: CategoryDao
     private lateinit var currencyRepository: CurrencyRepository
+    private lateinit var sessionManager: SessionManager
+    private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
 
     private var categories: List<String> = emptyList()
     private var defaultCurrencyExpenses: String = "USD"
@@ -46,7 +49,8 @@ class ExpensesFragment : Fragment() {
         val database = AppDatabase.Companion.getDatabase(requireContext())
         expenseDao = database.expenseDao()
         categoryDao = database.categoryDao()
-        currencyRepository = CurrencyRepository(requireContext())
+        sessionManager = SessionManager(requireContext())
+        currencyRepository = CurrencyRepository(requireContext(), userGuid)
 
         setupRecyclerView()
         setupFab()
@@ -78,7 +82,7 @@ class ExpensesFragment : Fragment() {
 
     private fun observeCategories() {
         viewLifecycleOwner.lifecycleScope.launch {
-            categoryDao.getAllCategoryNames().collectLatest { categoryList ->
+            categoryDao.getAllCategoryNames(userGuid).collectLatest { categoryList ->
                 categories = categoryList
             }
         }
@@ -102,7 +106,7 @@ class ExpensesFragment : Fragment() {
 
     private fun observeExpenses() {
         viewLifecycleOwner.lifecycleScope.launch {
-            expenseDao.getAllExpenses().collectLatest { expenses ->
+            expenseDao.getAllExpenses(userGuid).collectLatest { expenses ->
                 allExpenses = expenses
                 updateDisplayedExpenses()
             }
@@ -141,7 +145,8 @@ class ExpensesFragment : Fragment() {
             categories = categories,
             currencyRepository = currencyRepository,
             defaultCurrencyExpenses = defaultCurrencyExpenses,
-            defaultCurrencyTracking = defaultCurrencyTracking
+            defaultCurrencyTracking = defaultCurrencyTracking,
+            userGuid = userGuid
         ) { expense ->
             expenseDao.insert(expense)
         }.show()

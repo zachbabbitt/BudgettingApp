@@ -78,8 +78,9 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // Check for recurring expenses when returning to app (e.g., after date change)
+        val userGuid = sessionManager.getUserGuid() ?: return
         lifecycleScope.launch {
-            RecurringExpenseManager(expenseDao, userPreferencesDao)
+            RecurringExpenseManager(expenseDao, userPreferencesDao, userGuid)
                 .generateMonthlyRecurringExpensesIfNeeded()
         }
     }
@@ -155,8 +156,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun exportToCsv() {
         lifecycleScope.launch {
-            val expenses = expenseDao.getAllExpenses().first()
-            val income = incomeDao.getAllIncome().first()
+            val userGuid = sessionManager.getUserGuid() ?: ""
+            val expenses = expenseDao.getAllExpenses(userGuid).first()
+            val income = incomeDao.getAllIncome(userGuid).first()
 
             if (expenses.isEmpty() && income.isEmpty()) {
                 Toast.makeText(this@MainActivity, R.string.export_empty, Toast.LENGTH_SHORT).show()

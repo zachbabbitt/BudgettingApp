@@ -8,14 +8,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BudgetLimitDao {
-    @Query("SELECT * FROM budget_limits ORDER BY category ASC")
-    fun getAllLimits(): Flow<List<BudgetLimit>>
+    @Query("SELECT * FROM budget_limits WHERE userGuid = :userGuid ORDER BY category ASC")
+    fun getAllLimits(userGuid: String): Flow<List<BudgetLimit>>
 
-    @Query("SELECT * FROM budget_limits ORDER BY category ASC")
-    suspend fun getAllLimitsOnce(): List<BudgetLimit>
+    @Query("SELECT * FROM budget_limits WHERE userGuid = :userGuid ORDER BY category ASC")
+    suspend fun getAllLimitsOnce(userGuid: String): List<BudgetLimit>
 
-    @Query("SELECT * FROM budget_limits WHERE category = :category")
-    suspend fun getLimitForCategory(category: String): BudgetLimit?
+    @Query("SELECT * FROM budget_limits WHERE userGuid = :userGuid AND category = :category")
+    suspend fun getLimitForCategory(userGuid: String, category: String): BudgetLimit?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(budgetLimit: BudgetLimit)
@@ -23,6 +23,6 @@ interface BudgetLimitDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun updateAll(limits: List<BudgetLimit>)
 
-    @Query("DELETE FROM budget_limits WHERE category = :category")
-    suspend fun delete(category: String)
+    @Query("DELETE FROM budget_limits WHERE userGuid = :userGuid AND category = :category")
+    suspend fun delete(userGuid: String, category: String)
 }

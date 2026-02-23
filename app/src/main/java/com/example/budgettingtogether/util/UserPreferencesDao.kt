@@ -8,16 +8,15 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserPreferencesDao {
-    @Query("SELECT * FROM user_preferences WHERE id = 1")
-    fun getPreferences(): Flow<UserPreferences?>
+    @Query("SELECT * FROM user_preferences WHERE userGuid = :userGuid LIMIT 1")
+    fun getPreferences(userGuid: String): Flow<UserPreferences?>
 
-    @Query("SELECT * FROM user_preferences WHERE id = 1")
-    suspend fun getPreferencesOnce(): UserPreferences?
+    @Query("SELECT * FROM user_preferences WHERE userGuid = :userGuid LIMIT 1")
+    suspend fun getPreferencesOnce(userGuid: String): UserPreferences?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun savePreferences(preferences: UserPreferences)
 
-    @Query("UPDATE user_preferences SET lastRecurringGenerationMonth = :month, lastRecurringGenerationYear = :year WHERE id = 1")
-    suspend fun updateLastRecurringGeneration(month: Int, year: Int)
-
+    @Query("UPDATE user_preferences SET lastRecurringGenerationMonth = :month, lastRecurringGenerationYear = :year WHERE userGuid = :userGuid")
+    suspend fun updateLastRecurringGeneration(userGuid: String, month: Int, year: Int)
 }

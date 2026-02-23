@@ -48,7 +48,7 @@ class IncomeDaoTest {
 
         incomeDao.insert(income)
 
-        val incomeList = incomeDao.getAllIncome().first()
+        val incomeList = incomeDao.getAllIncome("").first()
         assertEquals(1, incomeList.size)
         assertEquals("Monthly Salary", incomeList[0].title)
         assertEquals(5000.0, incomeList[0].amount, 0.01)
@@ -64,7 +64,7 @@ class IncomeDaoTest {
         incomeDao.insert(income2)
         incomeDao.insert(income3)
 
-        val incomeList = incomeDao.getAllIncome().first()
+        val incomeList = incomeDao.getAllIncome("").first()
         assertEquals(3, incomeList.size)
     }
 
@@ -73,11 +73,11 @@ class IncomeDaoTest {
         val income = Income(title = "Salary", amount = 5000.0, source = "Salary")
 
         incomeDao.insert(income)
-        var incomeList = incomeDao.getAllIncome().first()
+        var incomeList = incomeDao.getAllIncome("").first()
         assertEquals(1, incomeList.size)
 
         incomeDao.delete(income)
-        incomeList = incomeDao.getAllIncome().first()
+        incomeList = incomeDao.getAllIncome("").first()
         assertEquals(0, incomeList.size)
     }
 
@@ -106,7 +106,7 @@ class IncomeDaoTest {
         incomeDao.insert(weekly)
         incomeDao.insert(monthly)
 
-        val recurring = incomeDao.getRecurringIncome().first()
+        val recurring = incomeDao.getRecurringIncome("").first()
         assertEquals(2, recurring.size)
         assertTrue(recurring.none { it.recurringType == RecurringType.NONE })
     }
@@ -117,7 +117,7 @@ class IncomeDaoTest {
         incomeDao.insert(Income(title = "Side Project", amount = 1000.0, source = "Freelance"))
         incomeDao.insert(Income(title = "Bonus", amount = 500.0, source = "Salary"))
 
-        val salaryIncome = incomeDao.getIncomeBySource("Salary").first()
+        val salaryIncome = incomeDao.getIncomeBySource("", "Salary").first()
         assertEquals(2, salaryIncome.size)
         assertTrue(salaryIncome.all { it.source == "Salary" })
     }
@@ -128,13 +128,13 @@ class IncomeDaoTest {
         incomeDao.insert(Income(title = "B", amount = 500.0, source = "Freelance"))
         incomeDao.insert(Income(title = "C", amount = 200.0, source = "Investments"))
 
-        val total = incomeDao.getTotalAmount().first()
+        val total = incomeDao.getTotalAmount("").first()
         assertEquals(1700.0, total ?: 0.0, 0.01)
     }
 
     @Test
     fun getTotalAmount_emptyDatabase_returnsNull() = runTest {
-        val total = incomeDao.getTotalAmount().first()
+        val total = incomeDao.getTotalAmount("").first()
         assertNull(total)
     }
 
@@ -152,7 +152,7 @@ class IncomeDaoTest {
         )
 
         incomeDao.insert(income)
-        val retrieved = incomeDao.getAllIncome().first()[0]
+        val retrieved = incomeDao.getAllIncome("").first()[0]
 
         assertEquals("test-income-123", retrieved.id)
         assertEquals("Test Income", retrieved.title)
@@ -189,7 +189,7 @@ class IncomeDaoTest {
             )
         )
 
-        val monthlyIncome = incomeDao.getIncomeByRecurringType(RecurringType.MONTHLY.name).first()
+        val monthlyIncome = incomeDao.getIncomeByRecurringType("", RecurringType.MONTHLY.name).first()
         assertEquals(2, monthlyIncome.size)
         assertTrue(monthlyIncome.all { it.recurringType == RecurringType.MONTHLY })
     }

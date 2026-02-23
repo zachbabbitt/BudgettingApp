@@ -16,6 +16,7 @@ import com.example.budgettingtogether.databinding.FragmentCalendarBinding
 import com.example.budgettingtogether.databinding.ItemCalendarDayBinding
 import com.example.budgettingtogether.databinding.ItemCalendarExpenseBinding
 import com.example.budgettingtogether.expenses.Expense
+import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.expenses.ExpenseDao
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
@@ -32,6 +33,8 @@ class CalendarFragment : Fragment() {
 
     private lateinit var expenseDao: ExpenseDao
     private lateinit var currencyRepository: CurrencyRepository
+    private lateinit var sessionManager: SessionManager
+    private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
     private var currencySymbol: String = "$"
 
     private val displayedMonth = Calendar.getInstance()
@@ -60,7 +63,8 @@ class CalendarFragment : Fragment() {
 
         val database = AppDatabase.getDatabase(requireContext())
         expenseDao = database.expenseDao()
-        currencyRepository = CurrencyRepository(requireContext())
+        sessionManager = SessionManager(requireContext())
+        currencyRepository = CurrencyRepository(requireContext(), userGuid)
 
         setupNavigation()
         buildCalendarGrid()
@@ -206,7 +210,7 @@ class CalendarFragment : Fragment() {
     private fun observeData() {
         viewLifecycleOwner.lifecycleScope.launch {
             combine(
-                expenseDao.getAllExpenses(),
+                expenseDao.getAllExpenses(userGuid),
                 currencyRepository.observeDefaultCurrencyTracking()
             ) { expenses, trackingCurrency ->
                 currencySymbol = CurrencyData.getSymbol(trackingCurrency)

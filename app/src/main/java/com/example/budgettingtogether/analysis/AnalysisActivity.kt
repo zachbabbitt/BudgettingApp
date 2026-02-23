@@ -12,6 +12,7 @@ import com.example.budgettingtogether.expenses.Expense
 import com.example.budgettingtogether.expenses.ExpenseAdapter
 import com.example.budgettingtogether.expenses.ExpenseDao
 import com.example.budgettingtogether.R
+import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.databinding.ActivityAnalysisBinding
 import kotlinx.coroutines.flow.collectLatest
@@ -24,6 +25,8 @@ class AnalysisActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAnalysisBinding
     private lateinit var expenseDao: ExpenseDao
     private lateinit var categoryDao: CategoryDao
+    private lateinit var sessionManager: SessionManager
+    private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
     private lateinit var recurringAdapter: ExpenseAdapter
     private lateinit var categoryExpenseAdapter: ExpenseAdapter
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
@@ -40,6 +43,7 @@ class AnalysisActivity : AppCompatActivity() {
         val database = AppDatabase.Companion.getDatabase(this)
         expenseDao = database.expenseDao()
         categoryDao = database.categoryDao()
+        sessionManager = SessionManager(this)
 
         setupToolbar()
         setupRecyclerViews()
@@ -84,19 +88,19 @@ class AnalysisActivity : AppCompatActivity() {
 
     private fun observeData() {
         lifecycleScope.launch {
-            categoryDao.getAllCategoryNames().collectLatest { categoryList ->
+            categoryDao.getAllCategoryNames(userGuid).collectLatest { categoryList ->
                 setupCategoryFilter(categoryList)
             }
         }
 
         lifecycleScope.launch {
-            expenseDao.getRecurringExpenses().collectLatest { recurringExpenses ->
+            expenseDao.getRecurringExpenses(userGuid).collectLatest { recurringExpenses ->
                 updateRecurringSection(recurringExpenses)
             }
         }
 
         lifecycleScope.launch {
-            expenseDao.getAllExpenses().collectLatest { expenses ->
+            expenseDao.getAllExpenses(userGuid).collectLatest { expenses ->
                 allExpenses = expenses
                 updateCategoryExpenses()
             }

@@ -14,7 +14,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-class CurrencyRepository(context: Context) {
+class CurrencyRepository(context: Context, private val userGuid: String = "") {
 
     companion object {
         private const val PREFS_NAME = "currency_prefs"
@@ -70,7 +70,7 @@ class CurrencyRepository(context: Context) {
             exchangeRateDao.insertAll(rates)
 
             // Update last refresh time
-            val prefs = userPreferencesDao.getPreferencesOnce() ?: UserPreferences()
+            val prefs = userPreferencesDao.getPreferencesOnce(userGuid) ?: UserPreferences()
             userPreferencesDao.savePreferences(prefs.copy(lastRatesUpdate = System.currentTimeMillis()))
 
             Result.success(Unit)
@@ -80,34 +80,34 @@ class CurrencyRepository(context: Context) {
     }
 
     suspend fun getDefaultCurrencyTracking(): String {
-        return userPreferencesDao.getPreferencesOnce()?.defaultCurrencyCodeTracking ?: "USD"
+        return userPreferencesDao.getPreferencesOnce(userGuid)?.defaultCurrencyCodeTracking ?: "USD"
     }
 
     suspend fun getDefaultCurrencyExpenses(): String {
-        return userPreferencesDao.getPreferencesOnce()?.defaultCurrencyCodeExpenses ?: "USD"
+        return userPreferencesDao.getPreferencesOnce(userGuid)?.defaultCurrencyCodeExpenses ?: "USD"
     }
 
     suspend fun getDefaultCurrencyIncome() : String {
-        return userPreferencesDao.getPreferencesOnce()?.defaultCurrencyCodeIncome ?: "USD"
+        return userPreferencesDao.getPreferencesOnce(userGuid)?.defaultCurrencyCodeIncome ?: "USD"
     }
 
     suspend fun setDefaultCurrencyTracking(currencyCode: String) {
-        val prefs = userPreferencesDao.getPreferencesOnce() ?: UserPreferences()
+        val prefs = userPreferencesDao.getPreferencesOnce(userGuid) ?: UserPreferences()
         userPreferencesDao.savePreferences(prefs.copy(defaultCurrencyCodeTracking = currencyCode))
     }
 
     suspend fun setDefaultCurrencyExpenses(currencyCode: String) {
-        val prefs = userPreferencesDao.getPreferencesOnce() ?: UserPreferences()
+        val prefs = userPreferencesDao.getPreferencesOnce(userGuid) ?: UserPreferences()
         userPreferencesDao.savePreferences(prefs.copy(defaultCurrencyCodeExpenses = currencyCode))
     }
 
     suspend fun setDefaultCurrencyIncome(currencyCode: String) {
-        val prefs = userPreferencesDao.getPreferencesOnce() ?: UserPreferences()
+        val prefs = userPreferencesDao.getPreferencesOnce(userGuid) ?: UserPreferences()
         userPreferencesDao.savePreferences(prefs.copy(defaultCurrencyCodeIncome = currencyCode))
     }
 
     suspend fun getLastUpdateTime(): Long {
-        return userPreferencesDao.getPreferencesOnce()?.lastRatesUpdate ?: 0L
+        return userPreferencesDao.getPreferencesOnce(userGuid)?.lastRatesUpdate ?: 0L
     }
 
     suspend fun getAllRates(): List<ExchangeRate> {
@@ -146,7 +146,7 @@ class CurrencyRepository(context: Context) {
         if (fromCurrency == toCurrency) return Result.success(Unit)
 
         return try {
-            val limits = budgetLimitDao.getAllLimitsOnce()
+            val limits = budgetLimitDao.getAllLimitsOnce(userGuid)
 
             val convertedLimits = limits.map { limit ->
                 val convertedAmount = convert(limit.limitAmount, fromCurrency, toCurrency)
@@ -165,16 +165,16 @@ class CurrencyRepository(context: Context) {
     }
 
     fun observeDefaultCurrencyExpenses(): Flow<String> =
-        userPreferencesDao.getPreferences()
+        userPreferencesDao.getPreferences(userGuid)
             .map { it?.defaultCurrencyCodeExpenses ?: "USD" }
 
     fun observeDefaultCurrencyTracking(): Flow<String> =
-        userPreferencesDao.getPreferences()
+        userPreferencesDao.getPreferences(userGuid)
             .map { it?.defaultCurrencyCodeTracking ?: "USD" }
 
 
     fun observeDefaultCurrencyIncome(): Flow<String> =
-        userPreferencesDao.getPreferences()
+        userPreferencesDao.getPreferences(userGuid)
             .map { it?.defaultCurrencyCodeIncome ?: "USD" }
 
     fun getRecentCurrencies(): List<String> {

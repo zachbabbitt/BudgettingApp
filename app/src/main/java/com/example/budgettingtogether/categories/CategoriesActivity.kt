@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.R
+import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.databinding.ActivityCategoriesBinding
 import kotlinx.coroutines.flow.collectLatest
@@ -16,6 +17,8 @@ class CategoriesActivity : AppCompatActivity() {
     private lateinit var binding: ActivityCategoriesBinding
     private lateinit var categoryDao: CategoryDao
     private lateinit var adapter: CategoryAdapter
+    private lateinit var sessionManager: SessionManager
+    private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,6 +27,7 @@ class CategoriesActivity : AppCompatActivity() {
 
         val database = AppDatabase.getDatabase(this)
         categoryDao = database.categoryDao()
+        sessionManager = SessionManager(this)
 
         setupToolbar()
         setupRecyclerView()
@@ -62,7 +66,7 @@ class CategoriesActivity : AppCompatActivity() {
 
     private fun observeCategories() {
         lifecycleScope.launch {
-            categoryDao.getAllCategories().collectLatest { categories ->
+            categoryDao.getAllCategories(userGuid).collectLatest { categories ->
                 adapter.updateList(categories)
             }
         }
@@ -70,7 +74,7 @@ class CategoriesActivity : AppCompatActivity() {
 
     private fun addCategory(name: String) {
         lifecycleScope.launch {
-            categoryDao.insert(Category(name, false))
+            categoryDao.insert(Category(name, false, userGuid = userGuid))
         }
     }
 

@@ -13,6 +13,7 @@ import com.example.budgettingtogether.R
 import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.databinding.ActivityIncomeBinding
 import com.example.budgettingtogether.databinding.DialogAddIncomeBinding
+import com.example.budgettingtogether.auth.SessionManager
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -21,6 +22,8 @@ class IncomeActivity : AppCompatActivity() {
     private lateinit var binding: ActivityIncomeBinding
     private lateinit var incomeAdapter: IncomeAdapter
     private lateinit var incomeDao: IncomeDao
+    private lateinit var sessionManager: SessionManager
+    private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
 
     private val sources = listOf(
         "Salary",
@@ -47,6 +50,7 @@ class IncomeActivity : AppCompatActivity() {
 
         val database = AppDatabase.Companion.getDatabase(this)
         incomeDao = database.incomeDao()
+        sessionManager = SessionManager(this)
 
         setupToolbar()
         setupRecyclerView()
@@ -79,7 +83,7 @@ class IncomeActivity : AppCompatActivity() {
 
     private fun observeIncome() {
         lifecycleScope.launch {
-            incomeDao.getAllIncome().collectLatest { incomeList ->
+            incomeDao.getAllIncome(userGuid).collectLatest { incomeList ->
                 incomeAdapter.updateList(incomeList)
                 updateTotalDisplay(incomeList)
             }
@@ -122,7 +126,7 @@ class IncomeActivity : AppCompatActivity() {
                     else -> RecurringType.NONE
                 }
 
-                addIncome(Income(title = title, amount = amount, source = source, recurringType = recurringType))
+                addIncome(Income(title = title, amount = amount, source = source, recurringType = recurringType, userGuid = userGuid))
             }
             .setNegativeButton(R.string.cancel, null)
             .show()

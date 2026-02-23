@@ -12,5 +12,6 @@ data class UserPreferences(
     val defaultCurrencyCodeIncome: String = "USD",
     val lastRatesUpdate: Long = 0L,
     val lastRecurringGenerationMonth: Int = -1,
-    val lastRecurringGenerationYear: Int = -1
+    val lastRecurringGenerationYear: Int = -1,
+    val userGuid: String = ""
 )

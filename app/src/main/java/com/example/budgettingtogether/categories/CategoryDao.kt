@@ -9,11 +9,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CategoryDao {
-    @Query("SELECT * FROM categories ORDER BY isDefault DESC, name ASC")
-    fun getAllCategories(): Flow<List<Category>>
+    @Query("SELECT * FROM categories WHERE userGuid = :userGuid OR isDefault = 1 ORDER BY isDefault DESC, name ASC")
+    fun getAllCategories(userGuid: String): Flow<List<Category>>
 
-    @Query("SELECT name FROM categories ORDER BY isDefault DESC, name ASC")
-    fun getAllCategoryNames(): Flow<List<String>>
+    @Query("SELECT name FROM categories WHERE userGuid = :userGuid OR isDefault = 1 ORDER BY isDefault DESC, name ASC")
+    fun getAllCategoryNames(userGuid: String): Flow<List<String>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(category: Category)
