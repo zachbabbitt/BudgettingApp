@@ -37,8 +37,7 @@ class RegisterActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
-        val database = AppDatabase.getDatabase(this)
-        authRepository = LocalAuthRepository(database.userDao())
+        authRepository = SupabaseAuthRepository()
         sessionManager = SessionManager(this)
 
         firstNameLayout = findViewById(R.id.firstNameLayout)
@@ -113,6 +112,7 @@ class RegisterActivity : AppCompatActivity() {
         lifecycleScope.launch {
             when (val result = authRepository.register(email, username, firstName, lastName, password)) {
                 is AuthResult.Success -> {
+                    AppDatabase.getDatabase(this@RegisterActivity).userDao().insert(result.user)
                     sessionManager.saveSession(result.user.id, result.user.userGuid)
                     val intent = Intent(this@RegisterActivity, MainActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

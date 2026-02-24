@@ -12,10 +12,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
-import com.example.budgettingtogether.auth.LocalAuthRepository
 import com.example.budgettingtogether.auth.LoginActivity
 import com.example.budgettingtogether.auth.PairingActivity
-import com.example.budgettingtogether.auth.PairingRepository
+import com.example.budgettingtogether.auth.RemotePairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.categories.CategoriesActivity
 import com.example.budgettingtogether.core.AppDatabase
@@ -49,7 +48,7 @@ class MainActivity : AppCompatActivity() {
     private val incomeSource: IIncomeSource get() = appDataSource.incomeSource
     private val userPreferencesSource: IUserPreferencesSource get() = appDataSource.userPreferencesSource
     private lateinit var sessionManager: SessionManager
-    private lateinit var pairingRepository: PairingRepository
+    private lateinit var pairingRepository: RemotePairingRepository
 
     private var pairedGuids: List<String> = emptyList()
     private var pendingCsvContent: String? = null
@@ -75,7 +74,7 @@ class MainActivity : AppCompatActivity() {
 
         val database = AppDatabase.getDatabase(this)
         sessionManager = SessionManager(this)
-        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
+        pairingRepository = RemotePairingRepository()
         storagePrefManager = StoragePreferenceManager(this)
         appDataSource = AppDataSource(database, storagePrefManager)
 
@@ -181,9 +180,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun displayUsername(database: AppDatabase) {
         val userId = sessionManager.getUserId() ?: return
-        val authRepository = LocalAuthRepository(database.userDao())
         lifecycleScope.launch {
-            val user = authRepository.getCurrentUser(userId)
+            val user = database.userDao().getUserById(userId)
             user?.let {
                 val headerView = binding.navigationView.getHeaderView(0)
                 val usernameText = headerView.findViewById<TextView>(R.id.usernameText)

@@ -1,6 +1,9 @@
 package com.example.budgettingtogether.auth
 
 import android.content.Context
+import com.example.budgettingtogether.core.SupabaseClientProvider
+import io.github.jan.supabase.auth.auth
+import kotlinx.coroutines.runBlocking
 
 class SessionManager(context: Context) {
 
@@ -27,6 +30,9 @@ class SessionManager(context: Context) {
     }
 
     fun clearSession() {
+        runBlocking {
+            try { SupabaseClientProvider.client.auth.signOut() } catch (_: Exception) {}
+        }
         prefs.edit()
             .putBoolean(KEY_IS_LOGGED_IN, false)
             .remove(KEY_USER_ID)

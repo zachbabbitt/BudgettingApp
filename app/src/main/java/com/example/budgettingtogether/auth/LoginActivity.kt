@@ -39,8 +39,7 @@ class LoginActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_login)
 
-        val database = AppDatabase.getDatabase(this)
-        authRepository = LocalAuthRepository(database.userDao())
+        authRepository = SupabaseAuthRepository()
 
         emailLayout = findViewById(R.id.emailLayout)
         emailInput = findViewById(R.id.emailInput)
@@ -82,6 +81,7 @@ class LoginActivity : AppCompatActivity() {
         lifecycleScope.launch {
             when (val result = authRepository.login(email, password)) {
                 is AuthResult.Success -> {
+                    AppDatabase.getDatabase(this@LoginActivity).userDao().insert(result.user)
                     sessionManager.saveSession(result.user.id, result.user.userGuid)
                     navigateToMain()
                 }

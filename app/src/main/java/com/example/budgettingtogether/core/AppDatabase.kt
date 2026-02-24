@@ -41,7 +41,7 @@ import java.util.Date
         User::class,
         UserPairing::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -198,6 +198,28 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Recreate users table without password_hash (auth moved to Supabase)
+                db.execSQL("""
+                    CREATE TABLE users_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        firstName TEXT NOT NULL,
+                        lastName TEXT NOT NULL,
+                        username TEXT NOT NULL,
+                        email TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        userGuid TEXT NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("INSERT INTO users_new SELECT id, firstName, lastName, username, email, createdAt, userGuid FROM users")
+                db.execSQL("DROP TABLE users")
+                db.execSQL("ALTER TABLE users_new RENAME TO users")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_users_email ON users (email)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_users_username ON users (username)")
+            }
+        }
+
         private val MIGRATION_12_13 = object : Migration(12, 13) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
@@ -230,7 +252,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "budget_database"
                 )
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

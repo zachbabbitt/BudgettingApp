@@ -11,7 +11,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.budgettingtogether.R
-import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.databinding.ActivityPairingBinding
 import com.example.budgettingtogether.databinding.ItemUserSearchResultBinding
 import kotlinx.coroutines.launch
@@ -19,7 +18,7 @@ import kotlinx.coroutines.launch
 class PairingActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPairingBinding
-    private lateinit var pairingRepository: PairingRepository
+    private lateinit var pairingRepository: RemotePairingRepository
     private lateinit var sessionManager: SessionManager
     private val currentUserId: String get() = sessionManager.getUserId() ?: ""
 
@@ -28,9 +27,8 @@ class PairingActivity : AppCompatActivity() {
         binding = ActivityPairingBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val database = AppDatabase.getDatabase(this)
         sessionManager = SessionManager(this)
-        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
+        pairingRepository = RemotePairingRepository()
 
         setupToolbar()
         setupSearch()
@@ -107,7 +105,7 @@ class PairingActivity : AppCompatActivity() {
 
         binding.linearLayoutPendingReceived.removeAllViews()
         for (request in requests) {
-            val requester = AppDatabase.getDatabase(this).userDao().getUserById(request.requesterId)
+            val requester = pairingRepository.getUserById(request.requesterId)
             val itemBinding = ItemUserSearchResultBinding.inflate(LayoutInflater.from(this), binding.linearLayoutPendingReceived, false)
             itemBinding.textViewUsername.text = requester?.username ?: request.requesterId
             itemBinding.textViewEmail.text = requester?.email ?: ""
@@ -129,7 +127,7 @@ class PairingActivity : AppCompatActivity() {
 
         binding.linearLayoutPendingSent.removeAllViews()
         for (request in requests) {
-            val receiver = AppDatabase.getDatabase(this).userDao().getUserById(request.receiverId)
+            val receiver = pairingRepository.getUserById(request.receiverId)
             val itemBinding = ItemUserSearchResultBinding.inflate(LayoutInflater.from(this), binding.linearLayoutPendingSent, false)
             itemBinding.textViewUsername.text = receiver?.username ?: request.receiverId
             itemBinding.textViewEmail.text = receiver?.email ?: ""
