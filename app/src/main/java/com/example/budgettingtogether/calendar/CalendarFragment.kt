@@ -16,7 +16,7 @@ import com.example.budgettingtogether.databinding.FragmentCalendarBinding
 import com.example.budgettingtogether.databinding.ItemCalendarDayBinding
 import com.example.budgettingtogether.databinding.ItemCalendarExpenseBinding
 import com.example.budgettingtogether.expenses.Expense
-import com.example.budgettingtogether.auth.PairingRepository
+import com.example.budgettingtogether.auth.RemotePairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.storage.AppDataSource
 import com.example.budgettingtogether.storage.StoragePreferenceManager
@@ -38,10 +38,11 @@ class CalendarFragment : Fragment() {
     private val expenseSource: IExpenseSource get() = appDataSource.expenseSource
     private lateinit var currencyRepository: CurrencyRepository
     private lateinit var sessionManager: SessionManager
-    private lateinit var pairingRepository: PairingRepository
+    private lateinit var pairingRepository: RemotePairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
     private var pairedGuids: List<String> = emptyList()
     private var currencySymbol: String = "$"
+    private var userLabels: Map<String, String> = emptyMap()
 
     private val displayedMonth = Calendar.getInstance()
     private var selectedDate: Date = Date()
@@ -69,7 +70,7 @@ class CalendarFragment : Fragment() {
 
         val database = AppDatabase.getDatabase(requireContext())
         sessionManager = SessionManager(requireContext())
-        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
+        pairingRepository = RemotePairingRepository()
         currencyRepository = CurrencyRepository(requireContext(), userGuid)
         appDataSource = AppDataSource(database, StoragePreferenceManager(requireContext()))
 
@@ -218,8 +219,20 @@ class CalendarFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val userId = sessionManager.getUserId() ?: return@launch
             pairedGuids = pairingRepository.getPairedUserGuids(userId, userGuid)
+            userLabels = buildUserLabelMap()
             observeData()
         }
+    }
+
+    private suspend fun buildUserLabelMap(): Map<String, String> {
+        if (pairedGuids.size <= 1) return emptyMap()
+        val result = mutableMapOf<String, String>()
+        val userId = sessionManager.getUserId() ?: return emptyMap()
+        pairingRepository.getUserById(userId)
+            ?.let { result[it.userGuid] = "@${it.username}" }
+        pairingRepository.getPartners(userId)
+            .forEach { result[it.userGuid] = "@${it.username}" }
+        return result
     }
 
     private fun observeData() {
@@ -278,6 +291,14 @@ class CalendarFragment : Fragment() {
                 itemBinding.textViewExpenseTitle.text = expense.title
                 itemBinding.textViewExpenseCategory.text = expense.category
                 itemBinding.textViewExpenseAmount.text = formatCurrency(expense.amount)
+
+                val label = userLabels[expense.userGuid]
+                if (label != null) {
+                    itemBinding.textViewUsername.text = label
+                    itemBinding.textViewUsername.visibility = View.VISIBLE
+                } else {
+                    itemBinding.textViewUsername.visibility = View.GONE
+                }
 
                 binding.linearLayoutExpenses.addView(itemBinding.root)
             }

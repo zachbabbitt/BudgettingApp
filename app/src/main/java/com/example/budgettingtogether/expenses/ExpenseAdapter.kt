@@ -19,8 +19,14 @@ class ExpenseAdapter(
 
     private var expenses: List<Expense> = emptyList()
     private var runningTotals: List<Double> = emptyList()
+    private var userLabels: Map<String, String> = emptyMap()
     private val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+
+    fun setUserLabels(labels: Map<String, String>) {
+        userLabels = labels
+        notifyDataSetChanged()
+    }
 
     fun updateList(newExpenses: List<Expense>) {
         val diffCallback = ExpenseDiffCallback(expenses, newExpenses)
@@ -72,6 +78,14 @@ class ExpenseAdapter(
                         textViewRecurring.visibility = View.VISIBLE
                         textViewRecurring.text = root.context.getString(R.string.recurring_monthly)
                     }
+                }
+
+                val label = userLabels[expense.userGuid]
+                if (label != null) {
+                    textViewUsername.text = label
+                    textViewUsername.visibility = View.VISIBLE
+                } else {
+                    textViewUsername.visibility = View.GONE
                 }
 
                 buttonDelete.setOnClickListener {

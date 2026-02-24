@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.budgettingtogether.core.AppDatabase
 import com.example.budgettingtogether.currency.CurrencyRepository
 import com.example.budgettingtogether.R
-import com.example.budgettingtogether.auth.PairingRepository
+import com.example.budgettingtogether.auth.RemotePairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.storage.AppDataSource
 import com.example.budgettingtogether.storage.StoragePreferenceManager
@@ -32,7 +32,7 @@ class ExpensesFragment : Fragment() {
     private val categorySource: ICategorySource get() = appDataSource.categorySource
     private lateinit var currencyRepository: CurrencyRepository
     private lateinit var sessionManager: SessionManager
-    private lateinit var pairingRepository: PairingRepository
+    private lateinit var pairingRepository: RemotePairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
     private var pairedGuids: List<String> = emptyList()
 
@@ -40,6 +40,7 @@ class ExpensesFragment : Fragment() {
     private var defaultCurrencyExpenses: String = "USD"
     private var defaultCurrencyTracking: String = "USD"
     private var allExpenses: List<Expense> = emptyList()
+    private var userLabels: Map<String, String> = emptyMap()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -55,7 +56,7 @@ class ExpensesFragment : Fragment() {
 
         val database = AppDatabase.Companion.getDatabase(requireContext())
         sessionManager = SessionManager(requireContext())
-        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
+        pairingRepository = RemotePairingRepository()
         currencyRepository = CurrencyRepository(requireContext(), userGuid)
         appDataSource = AppDataSource(database, StoragePreferenceManager(requireContext()))
 
@@ -90,9 +91,22 @@ class ExpensesFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val userId = sessionManager.getUserId() ?: return@launch
             pairedGuids = pairingRepository.getPairedUserGuids(userId, userGuid)
+            userLabels = buildUserLabelMap()
+            expenseAdapter.setUserLabels(userLabels)
             observeCategories()
             observeExpenses()
         }
+    }
+
+    private suspend fun buildUserLabelMap(): Map<String, String> {
+        if (pairedGuids.size <= 1) return emptyMap()
+        val result = mutableMapOf<String, String>()
+        val userId = sessionManager.getUserId() ?: return emptyMap()
+        pairingRepository.getUserById(userId)
+            ?.let { result[it.userGuid] = "@${it.username}" }
+        pairingRepository.getPartners(userId)
+            .forEach { result[it.userGuid] = "@${it.username}" }
+        return result
     }
 
     private fun observeCategories() {
