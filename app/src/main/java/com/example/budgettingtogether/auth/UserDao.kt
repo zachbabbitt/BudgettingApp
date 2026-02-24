@@ -29,4 +29,7 @@ interface UserDao {
 
     @Query("SELECT * FROM users WHERE id IN (:userIds)")
     suspend fun getUsersByIds(userIds: List<String>): List<User>
+
+    @Query("SELECT * FROM users WHERE userGuid = :userGuid LIMIT 1")
+    suspend fun getUserByUserGuid(userGuid: String): User?
 }

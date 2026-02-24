@@ -21,7 +21,7 @@ import com.example.budgettingtogether.util.RecurringType
 import com.example.budgettingtogether.currency.CurrencyData
 import com.example.budgettingtogether.currency.CurrencyDropdownAdapter
 import com.example.budgettingtogether.currency.CurrencyRepository
-import com.example.budgettingtogether.auth.PairingRepository
+import com.example.budgettingtogether.auth.RemotePairingRepository
 import com.example.budgettingtogether.auth.SessionManager
 import com.example.budgettingtogether.databinding.FragmentIncomeBinding
 import com.example.budgettingtogether.databinding.DialogAddIncomeBinding
@@ -38,12 +38,13 @@ class IncomeFragment : Fragment() {
     private val incomeSource: IIncomeSource get() = appDataSource.incomeSource
     private lateinit var currencyRepository: CurrencyRepository
     private lateinit var sessionManager: SessionManager
-    private lateinit var pairingRepository: PairingRepository
+    private lateinit var pairingRepository: RemotePairingRepository
     private val userGuid: String get() = sessionManager.getUserGuid() ?: ""
     private var pairedGuids: List<String> = emptyList()
 
     private var defaultCurrency: String = "USD"
     private val currencyCodes = CurrencyData.currencies.keys.sorted()
+    private var userLabels: Map<String, String> = emptyMap()
 
     private val sources = listOf(
         "Salary",
@@ -77,7 +78,7 @@ class IncomeFragment : Fragment() {
 
         val database = AppDatabase.Companion.getDatabase(requireContext())
         sessionManager = SessionManager(requireContext())
-        pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
+        pairingRepository = RemotePairingRepository()
         currencyRepository = CurrencyRepository(requireContext(), userGuid)
         appDataSource = AppDataSource(database, StoragePreferenceManager(requireContext()))
 
@@ -120,8 +121,21 @@ class IncomeFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val userId = sessionManager.getUserId() ?: return@launch
             pairedGuids = pairingRepository.getPairedUserGuids(userId, userGuid)
+            userLabels = buildUserLabelMap()
+            incomeAdapter.setUserLabels(userLabels)
             observeIncome()
         }
+    }
+
+    private suspend fun buildUserLabelMap(): Map<String, String> {
+        if (pairedGuids.size <= 1) return emptyMap()
+        val result = mutableMapOf<String, String>()
+        val userId = sessionManager.getUserId() ?: return emptyMap()
+        pairingRepository.getUserById(userId)
+            ?.let { result[it.userGuid] = "@${it.username}" }
+        pairingRepository.getPartners(userId)
+            .forEach { result[it.userGuid] = "@${it.username}" }
+        return result
     }
 
     private fun observeIncome() {
