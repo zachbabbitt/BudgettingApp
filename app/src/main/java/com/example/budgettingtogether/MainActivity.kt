@@ -30,6 +30,7 @@ import com.example.budgettingtogether.storage.StoragePreferenceManager
 import com.example.budgettingtogether.storage.source.IExpenseSource
 import com.example.budgettingtogether.storage.source.IIncomeSource
 import com.example.budgettingtogether.storage.source.IUserPreferencesSource
+import com.example.budgettingtogether.storage.sync.SyncService
 import com.example.budgettingtogether.util.CsvExporter
 import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.flow.first
@@ -42,9 +43,11 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var expenseSource: IExpenseSource
-    private lateinit var incomeSource: IIncomeSource
-    private lateinit var userPreferencesSource: IUserPreferencesSource
+    private lateinit var appDataSource: AppDataSource
+    private lateinit var storagePrefManager: StoragePreferenceManager
+    private val expenseSource: IExpenseSource get() = appDataSource.expenseSource
+    private val incomeSource: IIncomeSource get() = appDataSource.incomeSource
+    private val userPreferencesSource: IUserPreferencesSource get() = appDataSource.userPreferencesSource
     private lateinit var sessionManager: SessionManager
     private lateinit var pairingRepository: PairingRepository
 
@@ -73,10 +76,8 @@ class MainActivity : AppCompatActivity() {
         val database = AppDatabase.getDatabase(this)
         sessionManager = SessionManager(this)
         pairingRepository = PairingRepository(database.userDao(), database.userPairingDao())
-        val appDataSource = AppDataSource(database, StoragePreferenceManager(this))
-        expenseSource = appDataSource.expenseSource
-        incomeSource = appDataSource.incomeSource
-        userPreferencesSource = appDataSource.userPreferencesSource
+        storagePrefManager = StoragePreferenceManager(this)
+        appDataSource = AppDataSource(database, storagePrefManager)
 
         setupToolbar()
         setupNavigationDrawer()
@@ -88,8 +89,21 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         val userGuid = sessionManager.getUserGuid() ?: return
+
+        supportActionBar?.subtitle = if (storagePrefManager.isRemote())
+            getString(R.string.mode_remote)
+        else
+            getString(R.string.mode_local)
+
+        val database = AppDatabase.getDatabase(this)
         lifecycleScope.launch {
             loadPairedGuids()
+            if (storagePrefManager.isRemote()) {
+                val syncService = SyncService(database)
+                val guids = pairedGuids.ifEmpty { listOf(userGuid) }
+                syncService.pushToRemote(userGuid)
+                syncService.pullFromRemote(userGuid, guids)
+            }
             RecurringExpenseManager(expenseSource, userPreferencesSource, userGuid, pairedGuids.ifEmpty { listOf(userGuid) })
                 .generateMonthlyRecurringExpensesIfNeeded()
         }
