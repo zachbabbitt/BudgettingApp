@@ -23,6 +23,9 @@ interface ExpenseDao {
     @Delete
     suspend fun delete(expense: Expense)
 
+    @Query("DELETE FROM expenses WHERE id = :id")
+    suspend fun deleteById(id: String)
+
     @Query("SELECT SUM(amount) FROM expenses WHERE userGuid = :userGuid")
     fun getTotalAmount(userGuid: String): Flow<Double?>
 

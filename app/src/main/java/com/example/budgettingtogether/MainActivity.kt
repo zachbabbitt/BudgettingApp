@@ -32,6 +32,11 @@ import com.example.budgettingtogether.storage.StoragePreferenceManager
 import com.example.budgettingtogether.storage.source.IExpenseSource
 import com.example.budgettingtogether.storage.source.IIncomeSource
 import com.example.budgettingtogether.storage.source.IUserPreferencesSource
+import com.example.budgettingtogether.storage.source.LocalBudgetLimitSource
+import com.example.budgettingtogether.storage.source.LocalCategorySource
+import com.example.budgettingtogether.storage.source.LocalExpenseSource
+import com.example.budgettingtogether.storage.source.LocalIncomeSource
+import com.example.budgettingtogether.storage.sync.RealtimeListener
 import com.example.budgettingtogether.storage.sync.SyncService
 import com.example.budgettingtogether.util.CsvExporter
 import com.google.android.material.tabs.TabLayoutMediator
@@ -55,6 +60,7 @@ class MainActivity : AppCompatActivity() {
 
     private var pairedGuids: List<String> = emptyList()
     private var pendingCsvContent: String? = null
+    private lateinit var realtimeListener: RealtimeListener
 
     private val createDocumentLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
@@ -87,6 +93,13 @@ class MainActivity : AppCompatActivity() {
         pairingRepository = RemotePairingRepository()
         storagePrefManager = StoragePreferenceManager(this)
         appDataSource = AppDataSource(database, storagePrefManager)
+        realtimeListener = RealtimeListener(
+            localExpense = LocalExpenseSource(database.expenseDao()),
+            localIncome = LocalIncomeSource(database.incomeDao()),
+            localBudgetLimit = LocalBudgetLimitSource(database.budgetLimitDao()),
+            localCategory = LocalCategorySource(database.categoryDao()),
+            scope = lifecycleScope
+        )
 
         setupToolbar()
         setupNavigationDrawer()
@@ -112,10 +125,16 @@ class MainActivity : AppCompatActivity() {
                 val guids = pairedGuids.ifEmpty { listOf(userGuid) }
                 syncService.pushToRemote(userGuid)
                 syncService.pullFromRemote(userGuid, guids)
+                realtimeListener.start(guids)
             }
             RecurringExpenseManager(expenseSource, userPreferencesSource, userGuid, pairedGuids.ifEmpty { listOf(userGuid) })
                 .generateMonthlyRecurringExpensesIfNeeded()
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        lifecycleScope.launch { realtimeListener.stop() }
     }
 
     private fun loadPairedGuids() {

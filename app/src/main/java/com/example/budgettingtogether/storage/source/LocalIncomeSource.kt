@@ -11,6 +11,7 @@ class LocalIncomeSource(private val dao: IncomeDao) : IIncomeSource {
     override fun getIncomeBySource(userGuid: String, source: String) = dao.getIncomeBySource(userGuid, source)
     override suspend fun insert(income: Income) = dao.insert(income)
     override suspend fun delete(income: Income) = dao.delete(income)
+    suspend fun deleteById(id: String) = dao.deleteById(id)
     override fun getTotalAmount(userGuid: String) = dao.getTotalAmount(userGuid)
 
     override fun getAllIncome(userGuids: List<String>) = dao.getAllIncome(userGuids)

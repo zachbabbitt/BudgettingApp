@@ -10,6 +10,7 @@ class LocalExpenseSource(private val dao: ExpenseDao) : IExpenseSource {
     override fun getExpensesByRecurringType(userGuid: String, type: String) = dao.getExpensesByRecurringType(userGuid, type)
     override suspend fun insert(expense: Expense) = dao.insert(expense)
     override suspend fun delete(expense: Expense) = dao.delete(expense)
+    suspend fun deleteById(id: String) = dao.deleteById(id)
     override fun getTotalAmount(userGuid: String) = dao.getTotalAmount(userGuid)
     override suspend fun getMonthlyRecurringExpensesOnce(userGuid: String) = dao.getMonthlyRecurringExpensesOnce(userGuid)
     override suspend fun countMatchingExpensesInMonth(userGuid: String, title: String, category: String, recurringType: String, monthStart: Long, monthEnd: Long) =
