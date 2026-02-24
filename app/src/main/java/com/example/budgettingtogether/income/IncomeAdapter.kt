@@ -19,8 +19,14 @@ class IncomeAdapter(
 
     private var incomeList: List<Income> = emptyList()
     private var runningTotals: List<Double> = emptyList()
+    private var userLabels: Map<String, String> = emptyMap()
     private val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+
+    fun setUserLabels(labels: Map<String, String>) {
+        userLabels = labels
+        notifyDataSetChanged()
+    }
 
     fun updateList(newList: List<Income>) {
         val diffCallback = IncomeDiffCallback(incomeList, newList)
@@ -72,6 +78,14 @@ class IncomeAdapter(
                         textViewRecurring.visibility = View.VISIBLE
                         textViewRecurring.text = root.context.getString(R.string.recurring_monthly)
                     }
+                }
+
+                val label = userLabels[income.userGuid]
+                if (label != null) {
+                    textViewUsername.text = label
+                    textViewUsername.visibility = View.VISIBLE
+                } else {
+                    textViewUsername.visibility = View.GONE
                 }
 
                 buttonDelete.setOnClickListener {
