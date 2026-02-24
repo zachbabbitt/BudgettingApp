@@ -11,6 +11,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.example.budgettingtogether.auth.LoginActivity
 import com.example.budgettingtogether.auth.PairingActivity
@@ -71,6 +74,13 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.drawerLayout) { _, windowInsets ->
+            val bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            binding.toolbar.updatePadding(top = bars.top)
+            binding.tabLayout.updatePadding(bottom = bars.bottom)
+            windowInsets
+        }
 
         val database = AppDatabase.getDatabase(this)
         sessionManager = SessionManager(this)
